@@ -58,7 +58,10 @@ data class PwConfig(
         }
 }
 
-/** One project of a Playwright config, as reported by `playwright test --list --reporter=json`. */
-data class PwProjectInfo(val name: String, val testDir: Path, val outputDir: Path)
+/**
+ * One project of a Playwright config, as reported by the plugin's `js/pw-config-reporter.cjs` during
+ * `playwright test --list`. [testIdAttribute] is the project's resolved `use.testIdAttribute`, or null when unset.
+ */
+data class PwProjectInfo(val name: String, val testDir: Path, val outputDir: Path, val testIdAttribute: String? = null)
 
 class PwException(message: String) : Exception(message)

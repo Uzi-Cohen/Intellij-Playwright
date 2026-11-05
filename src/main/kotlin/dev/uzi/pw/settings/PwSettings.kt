@@ -22,7 +22,8 @@ class PwSettings : SimplePersistentStateComponent<PwSettings.State>(State()) {
         /** Path to a node executable; empty means the IDE's configured Node interpreter. */
         var nodeInterpreterPath by string()
         var defaultRecordUrl by string()
-        var testIdAttribute by string("data-testid")
+        /** User override; null means "use the config's use.testIdAttribute, else data-testid". */
+        var testIdAttribute by string()
         var alwaysRecordTrace by property(false)
         /** One of [AgentBackendId] names. */
         var agentBackend by string(AgentBackendId.CLAUDE.name)
@@ -33,8 +34,9 @@ class PwSettings : SimplePersistentStateComponent<PwSettings.State>(State()) {
         var codexSkipGitCheck by property(false)
     }
 
-    val testIdAttribute: String
-        get() = state.testIdAttribute?.takeIf { it.isNotBlank() } ?: "data-testid"
+    /** The test id attribute the user set in settings, or null. Resolve the effective value with PlaywrightProjectLocator.testIdAttribute. */
+    val testIdAttributeOverride: String?
+        get() = state.testIdAttribute?.trim()?.takeIf { it.isNotEmpty() }
 
     /** Reads the API key. Call off the EDT. */
     fun apiKey(): String? = PasswordSafe.instance.getPassword(API_KEY_ATTRIBUTES)

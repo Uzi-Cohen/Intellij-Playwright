@@ -40,12 +40,15 @@ import com.intellij.psi.search.GlobalSearchScope
 import dev.uzi.pw.PwBundle
 import dev.uzi.pw.settings.PwSettings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -97,12 +100,35 @@ class PlaywrightProjectLocator(private val project: Project, private val cs: Cor
 
     fun cachedProjects(config: PwConfig): List<PwProjectInfo>? = projectsCache[config.configFile.path]
 
-    /** Projects of [config] from `playwright test --list --reporter=json`. Cached until the config changes. */
+    /**
+     * The test id attribute to use: the plugin setting when the user set one, else the config's `use.testIdAttribute`
+     * for [projectInfo] (or the first project), else `data-testid`.
+     */
+    suspend fun testIdAttribute(config: PwConfig, projectInfo: PwProjectInfo? = null): String {
+        PwSettings.getInstance(project).testIdAttributeOverride?.let { return it }
+        val fromConfig = projectInfo?.testIdAttribute ?: try {
+            projects(config).firstNotNullOfOrNull { it.testIdAttribute }
+        } catch (e: PwException) {
+            LOG.info("Cannot read testIdAttribute from ${config.configFile.path}: ${e.message}")
+            null
+        }
+        return fromConfig ?: DEFAULT_TEST_ID_ATTRIBUTE
+    }
+
+    /** The detected `use.testIdAttribute` from the cache, without running Playwright. */
+    fun cachedConfigTestIdAttribute(config: PwConfig): String? =
+        cachedProjects(config)?.firstNotNullOfOrNull { it.testIdAttribute }
+
+    /**
+     * Projects of [config] from `playwright test --list --reporter=<js/pw-config-reporter.cjs>`, which prints each
+     * project's name, testDir, outputDir and `use.testIdAttribute`. Cached until the config changes.
+     */
     suspend fun projects(config: PwConfig): List<PwProjectInfo> {
         projectsCache[config.configFile.path]?.let { return it }
+        val reporter = withContext(Dispatchers.IO) { PluginResources.extractJs(CONFIG_REPORTER) }
         val cmd = NodeRunner.getInstance(project).commandLine(
             config,
-            listOf("test", "--list", "--reporter=json", "-c", config.configFile.path),
+            listOf("test", "--list", "--reporter=$reporter", "-c", config.configFile.path),
         )
         val output = NodeRunner.getInstance(project).runCapture(cmd)
         val result = parseProjects(output.stdout)
@@ -209,6 +235,10 @@ class PlaywrightProjectLocator(private val project: Project, private val cs: Cor
     companion object {
         private val LOG = logger<PlaywrightProjectLocator>()
 
+        const val DEFAULT_TEST_ID_ATTRIBUTE = "data-testid"
+        private const val CONFIG_REPORTER = "pw-config-reporter.cjs"
+        private const val REPORTER_MARKER = "PW_TOOLKIT_PROJECTS "
+
         val CONFIG_NAMES = listOf(
             "playwright.config.ts", "playwright.config.js", "playwright.config.mjs",
             "playwright.config.mts", "playwright.config.cjs", "playwright.config.cts",
@@ -219,13 +249,12 @@ class PlaywrightProjectLocator(private val project: Project, private val cs: Cor
 
         fun getInstance(project: Project): PlaywrightProjectLocator = project.service()
 
-        /** Parses `config.projects[].{name,testDir,outputDir}` from the JSON reporter output. */
+        /** Parses the `PW_TOOLKIT_PROJECTS {"projects":[...]}` line printed by js/pw-config-reporter.cjs. */
         internal fun parseProjects(stdout: String): List<PwProjectInfo> {
-            val start = stdout.indexOf('{')
-            if (start < 0) return emptyList()
+            val line = stdout.lineSequence().firstOrNull { it.startsWith(REPORTER_MARKER + "{") } ?: return emptyList()
             return try {
-                val root = Json.parseToJsonElement(stdout.substring(start)).jsonObject
-                val projects = root["config"]?.jsonObject?.get("projects") as? JsonArray ?: return emptyList()
+                val root = Json.parseToJsonElement(line.removePrefix(REPORTER_MARKER)).jsonObject
+                val projects = root["projects"] as? JsonArray ?: return emptyList()
                 projects.mapNotNull { element ->
                     val p = element as? JsonObject ?: return@mapNotNull null
                     val testDir = p["testDir"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
@@ -234,10 +263,11 @@ class PlaywrightProjectLocator(private val project: Project, private val cs: Cor
                         name = p["name"]?.jsonPrimitive?.contentOrNull ?: "",
                         testDir = Path.of(testDir),
                         outputDir = Path.of(outputDir),
+                        testIdAttribute = (p["testIdAttribute"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() },
                     )
                 }
             } catch (e: Exception) {
-                LOG.warn("Cannot parse JSON reporter output", e)
+                LOG.warn("Cannot parse config reporter output", e)
                 emptyList()
             }
         }

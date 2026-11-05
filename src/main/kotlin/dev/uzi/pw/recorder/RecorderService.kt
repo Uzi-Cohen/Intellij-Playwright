@@ -139,7 +139,7 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
                 val ok = BootstrapRunner.runRecordedFile(project, config, projectInfo.name, Path.of(created.file.path), c.wsEndpoint)
                 if (!ok) PwNotifications.warn(project, PwBundle.message("recorder.warn.bootstrap"))
             }
-            startRecording(config, c, tracker)
+            startRecording(config, c, tracker, projectInfo)
         }
     }
 
@@ -187,7 +187,8 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
     suspend fun startInspecting(config: PwConfig) {
         withContext(Dispatchers.EDT) { stopActiveRecording() }
         val c = ensureClient(config)
-        c.setRecorderMode(SetRecorderModeParams(RecorderMode.INSPECTING, testIdAttributeName = PwSettings.getInstance(project).testIdAttribute))
+        val testId = PlaywrightProjectLocator.getInstance(project).testIdAttribute(config)
+        c.setRecorderMode(SetRecorderModeParams(RecorderMode.INSPECTING, testIdAttributeName = testId))
         setState(State.INSPECTING)
     }
 
@@ -206,9 +207,10 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
 
     // ---------------------------------------------------------------- recording
 
-    private suspend fun startRecording(config: PwConfig, c: DebugControllerClient, newTracker: InsertionTracker) {
+    private suspend fun startRecording(config: PwConfig, c: DebugControllerClient, newTracker: InsertionTracker, projectInfo: PwProjectInfo? = null) {
+        val testId = PlaywrightProjectLocator.getInstance(project).testIdAttribute(config, projectInfo)
         try {
-            c.setRecorderMode(SetRecorderModeParams(RecorderMode.RECORDING, testIdAttributeName = PwSettings.getInstance(project).testIdAttribute))
+            c.setRecorderMode(SetRecorderModeParams(RecorderMode.RECORDING, testIdAttributeName = testId))
         } catch (e: PwException) {
             withContext(Dispatchers.EDT) { newTracker.dispose() }
             setState(State.IDLE)
@@ -261,7 +263,7 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
     /** `playwright codegen --target playwright-test -o <file> <url>`; the file is reloaded when the process exits. */
     fun codegen(config: PwConfig, file: VirtualFile, url: String?) {
         val args = mutableListOf("codegen", "--target", "playwright-test", "-o", file.path,
-            "--test-id-attribute", PwSettings.getInstance(project).testIdAttribute)
+            "--test-id-attribute", cachedTestIdAttribute(config))
         if (!url.isNullOrBlank()) args += url
         val runner = NodeRunner.getInstance(project)
         val cmd = try {
@@ -367,6 +369,12 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
             PwNotifications.error(project, message)
         }
     }
+
+    /** Effective test id attribute without running Playwright (setting, then cached config value, then data-testid). */
+    private fun cachedTestIdAttribute(config: PwConfig): String =
+        PwSettings.getInstance(project).testIdAttributeOverride
+            ?: PlaywrightProjectLocator.getInstance(project).cachedConfigTestIdAttribute(config)
+            ?: PlaywrightProjectLocator.DEFAULT_TEST_ID_ATTRIBUTE
 
     private fun setState(newState: State) {
         state = newState
