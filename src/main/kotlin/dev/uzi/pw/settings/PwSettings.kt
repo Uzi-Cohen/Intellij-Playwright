@@ -13,6 +13,11 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import dev.uzi.pw.core.PwTopics
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /** Project-level settings. The LLM API key is kept in [PasswordSafe], never in this state. */
 @Service(Service.Level.PROJECT)
@@ -41,6 +46,12 @@ class PwSettings(private val project: Project) : SimplePersistentStateComponent<
         var lastInitAgentsVersion by string()
         var lastInitAgentsLoop by string()
         var codexSkipGitCheck by property(false)
+        /** Environment variables for every Playwright process the plugin starts, as a JSON object (playwright-vscode `playwright.env`). */
+        var envVarsJson by string()
+        /** Optional dotenv file (absolute, or relative to the config's working directory). */
+        var envFile by string()
+        /** Also use the env vars and env file of the project's Playwright run configurations. */
+        var envFromRunConfigurations by property(true)
     }
 
     /** The test id attribute the user set in settings, or null. Resolve the effective value with PlaywrightProjectLocator.testIdAttribute. */
@@ -50,6 +61,19 @@ class PwSettings(private val project: Project) : SimplePersistentStateComponent<
     /** Reuse browser is on and allowed (it requires Show browser, as in playwright-vscode where both are one setting). */
     val isReuseBrowserEffective: Boolean
         get() = state.showBrowser && state.reuseBrowser
+
+    fun envVars(): Map<String, String> {
+        val json = state.envVarsJson?.takeIf { it.isNotBlank() } ?: return emptyMap()
+        return try {
+            Json.parseToJsonElement(json).jsonObject.mapValues { (_, v) -> v.jsonPrimitive.content }
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    fun setEnvVars(vars: Map<String, String>) {
+        state.envVarsJson = if (vars.isEmpty()) null else JsonObject(vars.mapValues { JsonPrimitive(it.value) }).toString()
+    }
 
     fun setShowBrowser(enabled: Boolean) {
         if (state.showBrowser == enabled) return

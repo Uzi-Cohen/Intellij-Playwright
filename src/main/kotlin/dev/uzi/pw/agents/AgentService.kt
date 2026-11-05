@@ -1,6 +1,7 @@
 /* Copyright 2026 Uzi Cohen. Licensed under the Apache License, Version 2.0. */
 package dev.uzi.pw.agents
 
+import dev.uzi.pw.core.PwConfigErrors
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.KillableColoredProcessHandler
 import com.intellij.execution.process.ProcessEvent
@@ -191,7 +192,15 @@ class AgentService(private val project: Project, val scope: CoroutineScope) : Di
                 val console = withContext(Dispatchers.EDT) { showConsole().also { it.clear() } }
                 console.print("$title\n", ConsoleViewContentType.SYSTEM_OUTPUT)
                 val exit = CompletableDeferred<Int>()
+                val output = StringBuilder()
                 val listener = object : ProcessListener {
+                    override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+                        synchronized(output) {
+                            output.append(event.text)
+                            if (output.length > OUTPUT_TAIL) output.delete(0, output.length - OUTPUT_TAIL)
+                        }
+                    }
+
                     override fun processTerminated(event: ProcessEvent) {
                         exit.complete(event.exitCode)
                     }
@@ -201,6 +210,10 @@ class AgentService(private val project: Project, val scope: CoroutineScope) : Di
                 closeInput(h)
                 val code = awaitExit(h, exit)
                 console.print(exitMessage(code) + "\n", ConsoleViewContentType.SYSTEM_OUTPUT)
+                if (code != 0) {
+                    val text = synchronized(output) { output.toString() }
+                    PwConfigErrors.notifyIfConfigLoadFailed(project, PlaywrightProjectLocator.getInstance(project).selectedConfig(), text)
+                }
                 onFinished(code)
             } catch (e: CancellationException) {
                 throw e
@@ -498,6 +511,7 @@ class AgentService(private val project: Project, val scope: CoroutineScope) : Di
     }
 
     companion object {
+        private const val OUTPUT_TAIL = 16_000
         private val LOG = logger<AgentService>()
         const val TOOL_WINDOW_ID = "Playwright"
         private const val REFRESH_INTERVAL_MS = 3_000L

@@ -1,6 +1,7 @@
 /* Copyright 2026 Uzi Cohen. Licensed under the Apache License, Version 2.0. */
 package dev.uzi.pw.settings
 
+import com.intellij.execution.configuration.EnvironmentVariablesComponent
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
@@ -22,6 +23,11 @@ class PwConfigurable(private val project: Project) : BoundConfigurable(PwBundle.
 
     private val settings = PwSettings.getInstance(project)
     private lateinit var apiKeyField: JBPasswordField
+    private val envComponent = EnvironmentVariablesComponent().apply {
+        // Only the variable table is used; the component's own label is replaced by the row label.
+        labelLocation = java.awt.BorderLayout.WEST
+        label.isVisible = false
+    }
     private var apiKeyLoaded: String? = null
 
     override fun createPanel(): DialogPanel {
@@ -40,6 +46,29 @@ class PwConfigurable(private val project: Project) : BoundConfigurable(PwBundle.
                         "${it.displayName}: ${it.version?.raw ?: PwBundle.message("locator.version.notFound")}"
                     }.ifEmpty { PwBundle.message("settings.versions.none") }
                     comment(text)
+                }
+            }
+            group(PwBundle.message("settings.group.env")) {
+                row {
+                    comment(PwBundle.message("settings.env.comment"))
+                }
+                row(PwBundle.message("settings.env.vars")) {
+                    cell(envComponent)
+                        .align(AlignX.FILL)
+                        .onReset { envComponent.envs = settings.envVars() }
+                        .onIsModified { envComponent.envs != settings.envVars() }
+                        .onApply { settings.setEnvVars(envComponent.envs) }
+                }
+                row(PwBundle.message("settings.env.file")) {
+                    textFieldWithBrowseButton(FileChooserDescriptorFactory.singleFile(), project)
+                        .align(AlignX.FILL)
+                        .bindText({ state.envFile ?: "" }, { state.envFile = it.trim().ifBlank { null } })
+                        .comment(PwBundle.message("settings.env.file.comment"))
+                }
+                row {
+                    checkBox(PwBundle.message("settings.env.fromRunConfigs"))
+                        .bindSelected({ state.envFromRunConfigurations }, { state.envFromRunConfigurations = it })
+                        .comment(PwBundle.message("settings.env.fromRunConfigs.comment"))
                 }
             }
             group(PwBundle.message("settings.group.recorder")) {
@@ -135,6 +164,8 @@ class PwConfigurable(private val project: Project) : BoundConfigurable(PwBundle.
 
     override fun apply() {
         super.apply()
+        // The environment may have changed: re-list projects with it next time.
+        PlaywrightProjectLocator.getInstance(project).invalidate()
         if (::apiKeyField.isInitialized) {
             val key = String(apiKeyField.password)
             if (key != (apiKeyLoaded ?: "")) {

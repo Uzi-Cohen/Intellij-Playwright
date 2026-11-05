@@ -5,6 +5,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.project.Project
 import dev.uzi.pw.PwBundle
 import dev.uzi.pw.core.PwConfig
+import dev.uzi.pw.core.PwEnvironment
 import dev.uzi.pw.core.PwException
 import dev.uzi.pw.settings.PwSettings
 import kotlinx.serialization.json.JsonObject
@@ -51,6 +52,8 @@ class CodexCliBackend(private val project: Project) : AgentBackend {
             .withExePath(binary)
             .withParameters(params)
             .withWorkDirectory(cfg.workingDir.path)
+            // The agent starts the Playwright MCP server, which loads the config: give it the user's Playwright env.
+            .withEnvironment(PwEnvironment.resolve(project, cfg))
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
             .withCharset(StandardCharsets.UTF_8)
     }

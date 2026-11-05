@@ -68,7 +68,15 @@ class PlaywrightProjectLocator(private val project: Project, private val cs: Cor
     private var configs: List<PwConfig> = emptyList()
     private val projectsCache = ConcurrentHashMap<String, List<PwProjectInfo>>()
     private val notifiedUnsupported = ConcurrentHashMap.newKeySet<String>()
+    /** Config-load failures already reported this session (cleared when the config or settings change). */
+    private val notifiedLoadFailure = ConcurrentHashMap.newKeySet<String>()
     private var refreshJob: Job? = null
+
+    /** Forget cached project lists and reported failures, e.g. after the environment settings changed. */
+    fun invalidate() {
+        projectsCache.clear()
+        notifiedLoadFailure.clear()
+    }
 
     init {
         project.messageBus.connect(cs).subscribe(VirtualFileManager.VFS_CHANGES_BG, object : BulkFileListenerBackgroundable {
@@ -76,7 +84,10 @@ class PlaywrightProjectLocator(private val project: Project, private val cs: Cor
                 if (events.any { isRelevant(it) }) {
                     for (event in events) {
                         val path = event.path
-                        if (CONFIG_NAMES.any { path.endsWith("/$it") }) projectsCache.remove(path)
+                        if (CONFIG_NAMES.any { path.endsWith("/$it") }) {
+                            projectsCache.remove(path)
+                            notifiedLoadFailure.remove(path)
+                        }
                     }
                     refresh()
                 }
@@ -134,6 +145,9 @@ class PlaywrightProjectLocator(private val project: Project, private val cs: Cor
         val result = parseProjects(output.stdout)
         if (result.isEmpty()) {
             LOG.warn("No projects listed for ${config.configFile.path}: exit=${output.exitCode} stderr=${output.stderr.take(2000)}")
+            if (notifiedLoadFailure.add(config.configFile.path)) {
+                PwConfigErrors.notifyIfConfigLoadFailed(project, config, output.stderr + "\n" + output.stdout)
+            }
             throw PwException(PwBundle.message("locator.error.noProjects", config.displayName, output.stderr.take(500)))
         }
         projectsCache[config.configFile.path] = result
