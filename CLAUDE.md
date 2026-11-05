@@ -14,7 +14,7 @@ The implementation plan lives in `docs/PLAN.md`.
   The owner does all testing.
 - The only allowed verification is `./gradlew compileKotlin` and `./gradlew buildPlugin`.
 - No AI attribution anywhere: no `Co-Authored-By`, no `Claude-Session`, no "Generated with" lines in commits or PRs.
-- Never push. Never publish. Never touch signing keys or tokens.
+- Push and merge freely; never force-push, rebase, or rewrite history. Never publish. Never touch signing keys or tokens.
 - Always write complete files, never partial snippets.
 - Files ported from playwright-vscode keep Microsoft's copyright header, with ours added below it,
   and are listed in `NOTICE`.

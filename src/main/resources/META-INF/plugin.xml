@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>dev.uzi.playwright</id>
-    <name>Playwright for IntelliJ</name>
+    <name>Playwright Toolkit</name>
     <vendor url="https://github.com/uzi-cohen">Uzi Cohen</vendor>
 
     <depends>com.intellij.modules.platform</depends>

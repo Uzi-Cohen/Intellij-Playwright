@@ -1,4 +1,4 @@
-# Playwright for IntelliJ
+# Playwright Toolkit
 
 Open source plugin for Playwright in IntelliJ IDEA Ultimate and WebStorm, based on Microsoft's
 [Playwright Test for VS Code](https://github.com/microsoft/playwright-vscode) extension.

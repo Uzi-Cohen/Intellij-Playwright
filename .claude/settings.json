@@ -13,10 +13,17 @@
       "Bash(git diff*)",
       "Bash(git log*)",
       "Bash(git add*)",
+      "Bash(git push*)",
+      "Bash(git merge*)",
+      "Bash(git checkout*)",
+      "Bash(git switch*)",
+      "Bash(git pull*)",
+      "Bash(git fetch*)"
+    ],
+    "ask": [
       "Bash(git commit*)"
     ],
     "deny": [
-      "Bash(git push*)",
       "Bash(./gradlew test*)",
       "Bash(./gradlew check*)",
       "Bash(./gradlew runIde*)",
@@ -24,7 +31,12 @@
       "Bash(./gradlew build)",
       "Bash(./gradlew build *)",
       "Bash(./gradlew publishPlugin*)",
-      "Bash(./gradlew signPlugin*)"
+      "Bash(./gradlew signPlugin*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push*--force*)",
+      "Bash(git rebase*)",
+      "Bash(git reset --hard*)"
     ]
   }
 }
