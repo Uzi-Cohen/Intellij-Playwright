@@ -7,4 +7,22 @@
     <depends>JavaScript</depends>
 
     <resource-bundle>messages.PwBundle</resource-bundle>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Playwright" anchor="right" icon="/icons/playwright.svg"
+                    factoryClass="dev.uzi.pw.ui.PlaywrightToolWindowFactory"/>
+        <projectConfigurable parentId="tools" id="dev.uzi.pw.settings"
+                             instance="dev.uzi.pw.settings.PwConfigurable"
+                             key="settings.title" bundle="messages.PwBundle"/>
+        <postStartupActivity implementation="dev.uzi.pw.core.PwStartupActivity"/>
+        <notificationGroup id="Playwright" displayType="BALLOON" key="notification.group" bundle="messages.PwBundle"/>
+    </extensions>
+
+    <actions>
+        <group id="Playwright.Tools" text="Playwright" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="Playwright.InstallBrowsers" class="dev.uzi.pw.actions.InstallBrowsersAction"
+                    text="Install Browsers" description="Run playwright install for the selected config"/>
+        </group>
+    </actions>
 </idea-plugin>
