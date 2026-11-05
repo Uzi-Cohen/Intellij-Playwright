@@ -25,6 +25,8 @@ class PwSettings : SimplePersistentStateComponent<PwSettings.State>(State()) {
         /** User override; null means "use the config's use.testIdAttribute, else data-testid". */
         var testIdAttribute by string()
         var alwaysRecordTrace by property(false)
+        /** Add --headed to Playwright runs started from the IDE. */
+        var showBrowser by property(false)
         /** One of [AgentBackendId] names. */
         var agentBackend by string(AgentBackendId.CLAUDE.name)
         var agentCliPath by string()
@@ -37,6 +39,10 @@ class PwSettings : SimplePersistentStateComponent<PwSettings.State>(State()) {
     /** The test id attribute the user set in settings, or null. Resolve the effective value with PlaywrightProjectLocator.testIdAttribute. */
     val testIdAttributeOverride: String?
         get() = state.testIdAttribute?.trim()?.takeIf { it.isNotEmpty() }
+
+    fun setShowBrowser(enabled: Boolean) {
+        state.showBrowser = enabled
+    }
 
     /** Reads the API key. Call off the EDT. */
     fun apiKey(): String? = PasswordSafe.instance.getPassword(API_KEY_ATTRIBUTES)
