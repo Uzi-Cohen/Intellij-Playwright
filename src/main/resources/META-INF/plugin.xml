@@ -1,0 +1,10 @@
+<idea-plugin>
+    <id>dev.uzi.playwright</id>
+    <name>Playwright for IntelliJ</name>
+    <vendor url="https://github.com/uzi-cohen">Uzi Cohen</vendor>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>JavaScript</depends>
+
+    <resource-bundle>messages.PwBundle</resource-bundle>
+</idea-plugin>

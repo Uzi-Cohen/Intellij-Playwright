@@ -1,0 +1,14 @@
+Playwright for IntelliJ
+Copyright 2026 Uzi Cohen
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes software derived from Playwright Test for VS Code
+(https://github.com/microsoft/playwright-vscode),
+Copyright (c) Microsoft Corporation, licensed under the Apache License, Version 2.0.
+
+Debug controller protocol shapes are taken from Playwright
+(https://github.com/microsoft/playwright), packages/protocol/src/protocol.yml at v1.56.0,
+Copyright (c) Microsoft Corporation, licensed under the Apache License, Version 2.0.
+
+Files derived from Microsoft sources (they keep Microsoft's copyright header):
