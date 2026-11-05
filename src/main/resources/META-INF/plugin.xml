@@ -49,6 +49,9 @@
                     text="Initialize Agents" description="Run playwright init-agents for the selected agent backend"/>
             <action id="Playwright.PlanTests" class="dev.uzi.pw.agents.PlanAction"
                     text="Plan Tests with Agent..." description="Explore a page with the planner agent and write a test plan to specs/"/>
+            <separator/>
+            <action id="Playwright.SetupReporting" class="dev.uzi.pw.reports.SetupReportingAction"
+                    text="Set Up Reporting..." description="Add HTML, Allure or JUnit reporting to the Playwright config"/>
         </group>
 
         <action id="Playwright.GenerateTests" class="dev.uzi.pw.agents.GenerateTestsAction"
