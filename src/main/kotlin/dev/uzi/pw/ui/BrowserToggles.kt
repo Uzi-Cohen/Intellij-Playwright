@@ -3,14 +3,19 @@ package dev.uzi.pw.ui
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.ex.CheckboxAction
-import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.project.DumbAwareToggleAction
 import dev.uzi.pw.PwBundle
 import dev.uzi.pw.settings.PwSettings
 
-/** Tool window toolbar checkbox for the "Show browser" setting. */
-class ShowBrowserToggle : CheckboxAction(PwBundle.message("toggle.showBrowser"), PwBundle.message("toggle.showBrowser.description"), null), DumbAware {
-
+/**
+ * "Show browser" as a checkable item in the Playwright tool window's options (⋮) menu. Kept out of the title bar
+ * so the content tabs have room.
+ */
+class ShowBrowserToggle : DumbAwareToggleAction(
+    PwBundle.message("toggle.showBrowser"),
+    PwBundle.message("toggle.showBrowser.description"),
+    null,
+) {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun isSelected(e: AnActionEvent): Boolean =
@@ -22,9 +27,12 @@ class ShowBrowserToggle : CheckboxAction(PwBundle.message("toggle.showBrowser"),
     }
 }
 
-/** Tool window toolbar checkbox for "Reuse browser" (enabled only with Show browser). */
-class ReuseBrowserToggle : CheckboxAction(PwBundle.message("toggle.reuseBrowser"), PwBundle.message("toggle.reuseBrowser.description"), null), DumbAware {
-
+/** "Reuse browser" in the options (⋮) menu; enabled only with Show browser. */
+class ReuseBrowserToggle : DumbAwareToggleAction(
+    PwBundle.message("toggle.reuseBrowser"),
+    PwBundle.message("toggle.reuseBrowser.description"),
+    null,
+) {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(e: AnActionEvent) {

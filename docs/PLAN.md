@@ -582,3 +582,11 @@ Non-blocking (decided, flagged so you can override):
 4. **HTML report:** run tests, then Show HTML Report. The report renders in the panel and its trace links open inside it.
 5. **Allure report:** Show Allure Report generates and shows the report. Run again: the shown report updates, and with clearing on it only has the latest run.
 6. **Fallbacks:** turn JCEF off (Registry `ide.browser.jcef.enabled`) and check the system browser fallback. Check "Open in System Browser".
+
+### Tool window layout fix
+**Problem:** the Show browser / Reuse browser checkboxes and the long config label in the tool window title pushed the content tabs out of view; they only appeared on hover.
+
+**Fix:**
+- The title bar now has only the config picker, labelled `<file> · <version>` with the full path in the tooltip.
+- Show browser / Reuse browser moved to the tool window's ⋮ options menu as checkable items, next to "Playwright Settings...". They are also still in settings.
+- The Record and Reports toolbars show text next to their icons and wrap when narrow. Record New uses a record icon.

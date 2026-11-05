@@ -21,7 +21,10 @@ class ConfigPickerAction : ComboBoxAction(), DumbAware {
     override fun update(e: AnActionEvent) {
         val project = e.project
         val selected = project?.let { PlaywrightProjectLocator.getInstance(it).selectedConfig() }
-        e.presentation.text = selected?.let { label(it) } ?: PwBundle.message("toolwindow.config.none")
+        // Short label in the title bar (file name and version) so the tool window tabs keep their room;
+        // the full path is in the tooltip and in the popup.
+        e.presentation.text = selected?.let { shortLabel(it) } ?: PwBundle.message("toolwindow.config.none")
+        e.presentation.description = selected?.let { label(it) }
         e.presentation.isEnabled = project != null && PlaywrightProjectLocator.getInstance(project).configs().isNotEmpty()
     }
 
@@ -35,6 +38,12 @@ class ConfigPickerAction : ComboBoxAction(), DumbAware {
             })
         }
         return group
+    }
+
+    private fun shortLabel(config: PwConfig): String {
+        val version = config.version?.raw ?: "?"
+        val suffix = if (config.isSupported) "" else " " + PwBundle.message("toolwindow.config.unsupported")
+        return "${config.configFile.name} · $version$suffix"
     }
 
     private fun label(config: PwConfig): String {
