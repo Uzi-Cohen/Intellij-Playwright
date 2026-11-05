@@ -436,3 +436,28 @@ Non-blocking (decided, flagged so you can override):
 - **Agents:**
   - `VirtualFileManager.VFS_CHANGES` (not the BG topic) is used during runs, because heal needs `before()` events to capture old contents.
   - The OpenCode `--format json` event shapes are undocumented, so lines that don't parse are printed raw.
+
+---
+
+## 14. Global setup and teardown on their own (not built)
+
+**How playwright-vscode does it.**
+- `extension.ts` registers `pw.extension.command.runGlobalSetup` / `runGlobalTeardown`, which call `TestModel.runGlobalHooks(type)`. That ends in `playwrightTestServer.ts` `_runGlobalHooksInServer`, which calls `testServer.runGlobalSetup({})` or `testServer.runGlobalTeardown({})` on the long-lived `playwright test-server` connection.
+- Server side, `packages/playwright/src/runner/testRunner.ts`:
+  - `runGlobalSetup` runs `createGlobalSetupTasks(config)` with `runTasksDeferCleanup`, keeps the returned `cleanup` in memory (`this._globalSetup = { cleanup }`), and returns the env vars the setup changed.
+  - `runGlobalTeardown` later calls that in-memory `cleanup`.
+
+**Why there is no CLI path.**
+- `playwright test` has no option that runs only global setup or only teardown. Every 1.56 and main option was checked in `program.ts`: nothing global-related besides `--global-timeout`.
+- The teardown has to run in the same process that ran the setup, because the setup's returned teardown function and its state live in memory. Separate CLI processes can't do that.
+- The only CLI approximation, e.g. `test --grep <nothing> --pass-with-no-tests`, runs setup and teardown back to back, which is not what the feature is for.
+- Note that tests run through IntelliJ's Playwright run configurations are separate CLI processes, and they already run the config's global setup/teardown on every run.
+
+**What building it would take.**
+1. **Server:** start `node <cli.js> test-server -c <config> --host 127.0.0.1` through `NodeRunner` and read `Listening on <ws>` from stdout, the same way as `playwrightTestServer.ts` `_createTestServer` / `backend.ts` `startBackend`.
+2. **Client:** a WebSocket client for the test-server protocol from `src/upstream/testServerConnection.ts`.
+   - Framing is `{ id, method, params }` → `{ id, result | error }`, events are `{ method, params }`, and a `ping` is sent every 30 s.
+   - Its message shapes would live only in a second file, e.g. `core/TestServerProtocol.kt`, pinned to 1.56 like `Protocol.kt`.
+3. **Calls:** `initialize({ interceptStdio: true, closeOnDisconnect: true, serializer? })`, `runGlobalSetup({})`, `runGlobalTeardown({})`, and the `stdio` / report events. The reports are teleporter messages (`TeleReporterReceiver`); the minimum is to print `stdio` text and the returned `status` to a console.
+4. **Lifetime:** keep the server process alive between setup and teardown, and tear it down on project close.
+5. **Env:** the `env` that `runGlobalSetup` returns would have to be injected into IntelliJ test runs through a new `RunPatchContributor`, so the runs see what the setup exported. Even then, the runs would execute the config's own global setup again, because the CLI cannot skip it. That gap is why this was left out.
