@@ -155,7 +155,7 @@ class PlaywrightRunPatcher : ProgramRunner<RunnerSettings> {
         const val RUNNER_ID: String = "dev.uzi.pw.runPatcher"
 
         /** Every feature that patches Playwright runs. Order matters only for the order of the added CLI args. */
-        private val CONTRIBUTORS: List<RunPatchContributor> = listOf(TraceRunPatch, HeadedRunPatch, ReuseBrowserRunPatch, ReportsRunPatch)
+        private val CONTRIBUTORS: List<RunPatchContributor> = listOf(TraceRunPatch, HeadedRunPatch, ReuseBrowserRunPatch, ProjectSelectionRunPatch, UpdateSnapshotsRunPatch, ReportsRunPatch)
 
         fun isPlaywright(profile: RunProfile): Boolean =
             profile is RunConfiguration && profile.type.id == PLAYWRIGHT_RUN_CONFIGURATION_TYPE_ID

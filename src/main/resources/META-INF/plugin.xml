@@ -11,6 +11,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Playwright" anchor="right" icon="/icons/playwright.svg"
                     factoryClass="dev.uzi.pw.ui.PlaywrightToolWindowFactory"/>
+        <toolWindow id="Playwright Trace" anchor="bottom" icon="/icons/playwright.svg"
+                    factoryClass="dev.uzi.pw.ui.TraceToolWindowFactory"/>
         <projectConfigurable parentId="tools" id="dev.uzi.pw.settings"
                              instance="dev.uzi.pw.settings.PwConfigurable"
                              key="settings.title" bundle="messages.PwBundle"/>
