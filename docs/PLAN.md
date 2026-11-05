@@ -542,3 +542,43 @@ Non-blocking (decided, flagged so you can override):
 
 ### 5. Global setup and teardown
 **Not built.** It only works through the test-server protocol; see section 14 for why and what it would take. No changes to code.
+
+---
+
+## 16. Round 3: reporting (setup + viewing)
+
+### What was checked in source before building
+- **IntelliJ's Playwright runs keep the config's reporters.** `PlaywrightRunProfileState` (javap) adds its own reporter through the `PW_TEST_REPORTER` env var. Playwright's `runner/reporters.ts` adds that reporter on top of the config's reporters.
+- **Playwright 1.56's `show-report` always opens the system browser** (`reporters/html.ts showHTMLReport` calls `open(url)` unconditionally; main skips it only for coding agents). So the plugin serves the HTML report folder itself (`StaticReportServer`, JDK `com.sun.net.httpserver`; the IDE runtime ships `jdk.httpserver`).
+- **Reporter options** come from `types/test.d.ts`: html `outputFolder` / `open`, junit `outputFile`. allure-playwright 3.14.0 takes `resultsDir`, default `./allure-results` relative to the test process cwd (allure-js-commons `sdk/reporter/utils.js`).
+- **Allure 3** (`allure` 3.22.1) is pure Node.
+  - `serve` reads `allurerc` from cwd, takes a report dir or a results pattern as its rest argument, picks a free port when `--port` is not given, and does not open a browser.
+  - It prints `Allure is running on <url>. Press CTRL+C to stop.` (`@allurereport/static-server`).
+  - The old `allure-commandline` 2.x wrapper is the one that needs Java; it is not used.
+- **The config's reporters can't be listed through `--reporter`,** because `--reporter` replaces `config.reporter` (`common/config.ts takeFirst(configCLIOverrides.reporter, ...)`). So the plugin reads the reporter option from the config source with JS PSI instead.
+
+### What was built
+- **Set Up Reporting** (Tools | Playwright, and the Reports tab):
+  - The choices are HTML (`['html', { open: 'never' }]`), Allure 3 (`['allure-playwright', { resultsDir: 'allure-results' }]`, installs `allure-playwright` and `allure`) and JUnit (`['junit', { outputFile: 'junit-results.xml' }]`).
+  - The config is edited through JS PSI, finding the `defineConfig({...})` argument, else the object after `export default` / `module.exports =`. It handles a missing `reporter`, a string `reporter`, and an array `reporter`, and never removes or changes the user's existing entries.
+  - The change is shown as a modal diff and applied after you confirm, as one undoable edit. A computed `reporter` gives a snippet on the clipboard instead.
+  - It also adds report folders to `.gitignore` and installs packages with the package manager detected from the lockfile (pnpm, yarn, bun, npm), found next to the project's node or on PATH, with output in the Run tool window.
+- **Reports tab:**
+  - It shows the status for HTML and Allure (not set up / no report yet / available).
+  - Show HTML Report serves `outputFolder` (default `playwright-report` next to the config). Show Allure Report runs `node node_modules/allure/cli.js serve --host 127.0.0.1 <resultsDir>`. Both open in JCEF, with the system browser as fallback.
+  - The shown report reloads (Allure regenerates) after each Playwright run.
+- **Settings | Reports:**
+  - "Open the report after each Playwright run" (off by default; prefers Allure when it has results).
+  - "Clear Allure results before each run" (on by default, through a `RunPatchContributor`, since allure-playwright appends to its results folder).
+
+### Differs from what was proposed
+- **No GitHub Actions step:** not chosen, and too close to the "no test workflows" rule.
+- **No package-manager override** in settings yet; detection is by lockfile only.
+
+### Test
+1. **New project with `reporter: 'list'`:** Set Up Reporting with HTML + Allure. The diff shows `reporter: [['list'], ['html', ...], ['allure-playwright', ...]]`, and applying it can be undone with Ctrl+Z.
+2. **Install:** packages install with the right package manager (try a pnpm and an npm project), and `.gitignore` gets the folders once (run setup twice and check nothing is duplicated).
+3. **Configs the editor can't handle:** a config with `reporter: process.env.CI ? 'dot' : 'list'` gives the manual snippet. A config without a `reporter` gets one added.
+4. **HTML report:** run tests, then Show HTML Report. The report renders in the panel and its trace links open inside it.
+5. **Allure report:** Show Allure Report generates and shows the report. Run again: the shown report updates, and with clearing on it only has the latest run.
+6. **Fallbacks:** turn JCEF off (Registry `ide.browser.jcef.enabled`) and check the system browser fallback. Check "Open in System Browser".
