@@ -125,7 +125,7 @@ class DebugControllerClient private constructor(
         scope.launch {
             runCatching { withTimeout(1_000) { sendRaw(DebugControllerProtocol.Methods.KILL, JsonObject(emptyMap()), expectReply = false) } }
             runCatching { webSocket.abort() }
-            runCatching { handler.processInput?.close() }
+            runCatching { handler.processInput.close() }
             delay(2_000)
             if (!handler.isProcessTerminated) handler.destroyProcess()
         }

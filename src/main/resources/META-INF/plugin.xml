@@ -21,7 +21,17 @@
         <postStartupActivity implementation="dev.uzi.pw.trace.TraceWatcherStartupActivity"/>
         <programRunner id="dev.uzi.pw.traceRunner" order="first"
                        implementation="dev.uzi.pw.trace.TraceProgramRunner"/>
+
+        <!-- Step 5: agents -->
+        <postStartupActivity implementation="dev.uzi.pw.agents.AgentsStartupCheck"/>
+        <!-- TypeScript is a JavaScript dialect; the JS plugin registers its own line markers for language="JavaScript" only. -->
+        <codeInsight.lineMarkerProvider language="JavaScript" implementationClass="dev.uzi.pw.agents.HealLineMarkerProvider"/>
     </extensions>
+
+    <projectListeners>
+        <listener class="dev.uzi.pw.agents.FailedTestsRegistry$Listener"
+                  topic="com.intellij.execution.testframework.sm.runner.SMTRunnerEventsListener"/>
+    </projectListeners>
 
     <actions>
         <group id="Playwright.Tools" text="Playwright" popup="true">
@@ -33,7 +43,24 @@
                     text="Record New Test" description="Record a new test into tests/recorded-N.spec.ts"/>
             <action id="Playwright.PickLocator" class="dev.uzi.pw.locator.PickLocatorAction"
                     text="Pick Locator" description="Pick a locator in the Playwright browser"/>
+            <separator/>
+            <action id="Playwright.InitAgents" class="dev.uzi.pw.agents.InitAgentsAction"
+                    text="Initialize Agents" description="Run playwright init-agents for the selected agent backend"/>
+            <action id="Playwright.PlanTests" class="dev.uzi.pw.agents.PlanAction"
+                    text="Plan Tests with Agent..." description="Explore a page with the planner agent and write a test plan to specs/"/>
         </group>
+
+        <action id="Playwright.GenerateTests" class="dev.uzi.pw.agents.GenerateTestsAction"
+                text="Playwright: Generate Tests with Agent" description="Generate tests from this plan with the generator agent">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+        <action id="Playwright.HealTest" class="dev.uzi.pw.agents.HealTestAction"
+                text="Playwright: Heal with Agent" description="Fix this failing test with the healer agent"
+                icon="AllIcons.Actions.QuickfixBulb">
+            <add-to-group group-id="TestTreePopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
 
         <group id="Playwright.EditorPopup">
             <separator/>

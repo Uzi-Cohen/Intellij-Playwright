@@ -422,3 +422,17 @@ Only one blocks anything, and only the NOTICE/vendor text:
 Non-blocking (decided, flagged so you can override):
 - Plugin display name. Plugin Verifier has "forbidden word in plugin name" checks (SDK docs FAQ "How to mute specific problems in pluginVerification"), and Marketplace may reject "IntelliJ" in the name. Since we never publish, I'll keep **"Playwright for IntelliJ"**; rename before any Marketplace upload.
 - If javap shows the Playwright run configuration ignores `nodeRunConfigurationExtension`, "Always record trace" uses fallback A (edits run configurations, and the setting says so).
+
+---
+
+## 13. Implementation notes (steps 0–5 built)
+
+- **Repositories:** IntelliJ repositories first, then JetBrains' Maven Central mirror (`https://cache-redirector.jetbrains.com/maven-central`) above `mavenCentral()`. In `pluginManagement`, `gradlePluginPortal()` sits above `mavenCentral()`, because `foojay-resolver` and `intellij-platform-gradle-plugin` exist only on the portal, and a 429 from Maven Central fails resolution instead of falling through.
+- **`--trace on` hook (section 5), as built:**
+  - **What javap showed:** the Playwright run configuration is `com.intellij.aqua.runners.playwright.js.PlaywrightRunConfiguration`, type id `JavaScriptTestRunnerPlaywright`. It lives in an internal content module of the JavaScript plugin. `PlaywrightRunProfileState` never calls `NodeRunConfigurationExtensionsManager`, so neither `JavaScript.nodeRunConfigurationExtension` nor a `--require` preload would run. The settings expose `getCliOptions()`/`builder().setCliOptions()`, and those CLI options are appended after `playwright test`.
+  - **What was built:** `trace/TraceProgramRunner` is a `ProgramRunner` registered `order="first"`. While "Always record trace" is on, it clones the Playwright config, adds `--trace on` to the clone's CLI options (through reflection, because the classes are internal), and hands the clone to the runner that would have run it. The user's config is never modified.
+- **Record new with a URL:** the new file contains `await page.goto(url)`. It is run once against the debug controller's browser (`PW_TEST_CONNECT_WS_ENDPOINT` + `PW_TEST_REUSE_CONTEXT=1`), then recording replaces the `// Recording...` line.
+- **Record at cursor with a default URL:** a throwaway config and spec in the IDE temp dir open the URL. The user's config `use` options are not applied there.
+- **Agents:**
+  - `VirtualFileManager.VFS_CHANGES` (not the BG topic) is used during runs, because heal needs `before()` events to capture old contents.
+  - The OpenCode `--format json` event shapes are undocumented, so lines that don't parse are printed raw.
