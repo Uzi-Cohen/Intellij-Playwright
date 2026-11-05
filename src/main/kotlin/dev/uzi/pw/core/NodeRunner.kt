@@ -41,15 +41,24 @@ class NodeRunner(private val project: Project) {
     /** `node <cli.js> args...` in the config's working directory. */
     fun commandLine(config: PwConfig, args: List<String>, env: Map<String, String> = emptyMap()): GeneralCommandLine {
         val cli = config.cliJs ?: throw PwException(PwBundle.message("node.error.noPlaywright", config.displayName))
-        return nodeCommandLine(config.workingDir.path, listOf(cli.toString()) + args, env)
+        return nodeCommandLine(config.workingDir.path, listOf(cli.toString()) + args, env, config)
     }
 
-    /** `node args...` in [workDir]. */
-    fun nodeCommandLine(workDir: String, args: List<String>, env: Map<String, String> = emptyMap()): GeneralCommandLine {
+    /**
+     * `node args...` in [workDir], with the user's Playwright environment ([PwEnvironment]) and then [env] on top.
+     * [config] picks the run configuration env; defaults to the selected config.
+     */
+    fun nodeCommandLine(
+        workDir: String,
+        args: List<String>,
+        env: Map<String, String> = emptyMap(),
+        config: PwConfig? = PlaywrightProjectLocator.getInstance(project).selectedConfig(),
+    ): GeneralCommandLine {
         val node = nodePath() ?: throw PwException(PwBundle.message("node.error.noNode"))
         return GeneralCommandLine(listOf(node) + args)
             .withWorkingDirectory(java.nio.file.Path.of(workDir))
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
+            .withEnvironment(PwEnvironment.resolve(project, config))
             .withEnvironment(env)
             .withCharset(StandardCharsets.UTF_8)
     }

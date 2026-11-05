@@ -31,7 +31,7 @@ Enable the hook that strips AI trailers: `git config core.hooksPath .githooks`.
 
 ```
 src/main/kotlin/dev/uzi/pw/
-  core/      PlaywrightProjectLocator NodeRunner DebugControllerClient Protocol PwModel PwStartupActivity PwTopics PwNotifications
+  core/      PlaywrightProjectLocator NodeRunner PwEnvironment PwConfigErrors DebugControllerClient Protocol PwModel PwStartupActivity PwTopics PwNotifications
   recorder/  RecorderService RecordNewAction RecordAtCursorAction InsertionTracker NewTestFile BootstrapRunner
   locator/   LocatorPicker PickLocatorAction HighlightLocatorAction
   trace/     TraceService TraceWatcher TraceViewerPanel TraceIndex TraceRunPatch

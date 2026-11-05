@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import dev.uzi.pw.PwBundle
 import dev.uzi.pw.core.NodeRunner
 import dev.uzi.pw.core.PwConfig
+import dev.uzi.pw.core.PwEnvironment
 import dev.uzi.pw.core.PwException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -70,6 +71,8 @@ class ClaudeCliBackend(private val project: Project) : AgentBackend {
                 "--allowedTools", "mcp__$MCP_SERVER", "Read", "Glob", "Grep", "LS", "Edit", "MultiEdit", "Write",
             )
             .withWorkDirectory(cfg.workingDir.path)
+            // The agent starts the Playwright MCP server, which loads the config: give it the user's Playwright env.
+            .withEnvironment(PwEnvironment.resolve(project, cfg))
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
             .withCharset(StandardCharsets.UTF_8)
     }
