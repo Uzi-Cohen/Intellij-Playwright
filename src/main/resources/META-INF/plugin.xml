@@ -1,0 +1,74 @@
+<idea-plugin>
+    <id>dev.uzi.playwright</id>
+    <name>Playwright Toolkit</name>
+    <vendor url="https://github.com/uzi-cohen">Uzi Cohen</vendor>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>JavaScript</depends>
+
+    <resource-bundle>messages.PwBundle</resource-bundle>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Playwright" anchor="right" icon="/icons/playwright.svg"
+                    factoryClass="dev.uzi.pw.ui.PlaywrightToolWindowFactory"/>
+        <projectConfigurable parentId="tools" id="dev.uzi.pw.settings"
+                             instance="dev.uzi.pw.settings.PwConfigurable"
+                             key="settings.title" bundle="messages.PwBundle"/>
+        <postStartupActivity implementation="dev.uzi.pw.core.PwStartupActivity"/>
+        <notificationGroup id="Playwright" displayType="BALLOON" key="notification.group" bundle="messages.PwBundle"/>
+
+        <!-- Step 2: traces -->
+        <postStartupActivity implementation="dev.uzi.pw.trace.TraceWatcherStartupActivity"/>
+        <programRunner id="dev.uzi.pw.traceRunner" order="first"
+                       implementation="dev.uzi.pw.trace.TraceProgramRunner"/>
+
+        <!-- Step 5: agents -->
+        <postStartupActivity implementation="dev.uzi.pw.agents.AgentsStartupCheck"/>
+        <!-- TypeScript is a JavaScript dialect; the JS plugin registers its own line markers for language="JavaScript" only. -->
+        <codeInsight.lineMarkerProvider language="JavaScript" implementationClass="dev.uzi.pw.agents.HealLineMarkerProvider"/>
+    </extensions>
+
+    <projectListeners>
+        <listener class="dev.uzi.pw.agents.FailedTestsRegistry$Listener"
+                  topic="com.intellij.execution.testframework.sm.runner.SMTRunnerEventsListener"/>
+    </projectListeners>
+
+    <actions>
+        <group id="Playwright.Tools" text="Playwright" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="Playwright.InstallBrowsers" class="dev.uzi.pw.actions.InstallBrowsersAction"
+                    text="Install Browsers" description="Run playwright install for the selected config"/>
+            <separator/>
+            <action id="Playwright.RecordNew" class="dev.uzi.pw.recorder.RecordNewAction"
+                    text="Record New Test" description="Record a new test into tests/recorded-N.spec.ts"/>
+            <action id="Playwright.PickLocator" class="dev.uzi.pw.locator.PickLocatorAction"
+                    text="Pick Locator" description="Pick a locator in the Playwright browser"/>
+            <separator/>
+            <action id="Playwright.InitAgents" class="dev.uzi.pw.agents.InitAgentsAction"
+                    text="Initialize Agents" description="Run playwright init-agents for the selected agent backend"/>
+            <action id="Playwright.PlanTests" class="dev.uzi.pw.agents.PlanAction"
+                    text="Plan Tests with Agent..." description="Explore a page with the planner agent and write a test plan to specs/"/>
+        </group>
+
+        <action id="Playwright.GenerateTests" class="dev.uzi.pw.agents.GenerateTestsAction"
+                text="Playwright: Generate Tests with Agent" description="Generate tests from this plan with the generator agent">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+        <action id="Playwright.HealTest" class="dev.uzi.pw.agents.HealTestAction"
+                text="Playwright: Heal with Agent" description="Fix this failing test with the healer agent"
+                icon="AllIcons.Actions.QuickfixBulb">
+            <add-to-group group-id="TestTreePopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+
+        <group id="Playwright.EditorPopup">
+            <separator/>
+            <action id="Playwright.RecordAtCursor" class="dev.uzi.pw.recorder.RecordAtCursorAction"
+                    text="Playwright: Record at Cursor" description="Record browser actions at the caret"/>
+            <action id="Playwright.HighlightLocator" class="dev.uzi.pw.locator.HighlightLocatorAction"
+                    text="Playwright: Highlight in Browser" description="Highlight the locator under the caret in the Playwright browser"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </group>
+    </actions>
+</idea-plugin>

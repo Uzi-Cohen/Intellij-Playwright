@@ -1,0 +1,10 @@
+.DS_Store
+.gradle
+.idea
+.intellijPlatform
+.kotlin
+build
+.claude/settings.local.json
+test-results/
+playwright-report/
+node_modules/

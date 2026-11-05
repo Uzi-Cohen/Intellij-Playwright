@@ -1,0 +1,18 @@
+#!/bin/sh
+# Strips AI attribution trailers from commit messages.
+# Enable with: git config core.hooksPath .githooks
+
+msg_file="$1"
+tmp_file="$msg_file.tmp"
+
+grep -v -i -E '^(Co-Authored-By|Co-authored-by):.*(claude|anthropic)' "$msg_file" \
+  | grep -v -E '^Claude-Session:' \
+  | grep -v -F 'Generated with [Claude Code]' \
+  | grep -v -F 'Generated with Claude Code' \
+  | grep -v -F 'claude.ai/code/session_' \
+  > "$tmp_file"
+
+# Trim trailing blank lines.
+awk '{ lines[NR] = $0 } END { n = NR; while (n > 0 && lines[n] ~ /^[[:space:]]*$/) n--; for (i = 1; i <= n; i++) print lines[i] }' "$tmp_file" > "$msg_file"
+rm -f "$tmp_file"
+exit 0
