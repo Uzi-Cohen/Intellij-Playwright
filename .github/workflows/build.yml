@@ -36,8 +36,10 @@ jobs:
       - name: Build plugin
         run: ./gradlew buildPlugin
 
+      # archive: false uploads the plugin zip as-is (no extra zip around it), so the downloaded artifact is the
+      # file that goes into Settings | Plugins | Install Plugin from Disk. The artifact is named after the file.
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: plugin-distribution
           path: ./build/distributions/*.zip
+          archive: false
