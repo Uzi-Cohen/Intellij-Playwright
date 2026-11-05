@@ -15,6 +15,10 @@ fun interface PwRecorderStateListener {
     fun recorderStateChanged()
 }
 
+fun interface PwReportsListener {
+    fun reportsChanged()
+}
+
 fun interface PwSettingsListener {
     fun settingsChanged()
 }
@@ -32,6 +36,10 @@ object PwTopics {
     @JvmField
     @Topic.ProjectLevel
     val SETTINGS_CHANGED: Topic<PwSettingsListener> = Topic(PwSettingsListener::class.java, Topic.BroadcastDirection.NONE)
+
+    @JvmField
+    @Topic.ProjectLevel
+    val REPORTS_CHANGED: Topic<PwReportsListener> = Topic(PwReportsListener::class.java, Topic.BroadcastDirection.NONE)
 
     @JvmField
     @Topic.ProjectLevel
