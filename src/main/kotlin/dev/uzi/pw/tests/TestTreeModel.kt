@@ -106,6 +106,8 @@ class TestModel(
     val configPath: String,
     val projects: List<ListedProject>,
     val files: List<FileNode>,
+    /** The directory file titles are relative to (`/` separators): the common ancestor of the testDirs. */
+    val root: String?,
 ) {
     private val casesByFile: Map<String, List<CaseNode>>
     private val nodesByKey: Map<String, TestNode>
@@ -185,7 +187,7 @@ class TestModel(
             }
             val sortedFiles = files.values.sortedBy { it.file }
             sortedFiles.forEach { sort(it) }
-            return TestModel(configPath, projects, sortedFiles)
+            return TestModel(configPath, projects, sortedFiles, normalizedRoot)
         }
 
         private fun sort(node: TestNode) {

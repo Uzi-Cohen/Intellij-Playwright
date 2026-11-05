@@ -21,3 +21,4 @@ Files derived from Microsoft sources (they keep Microsoft's copyright header):
 - src/main/kotlin/dev/uzi/pw/locator/AriaSnapshotCode.kt          <- microsoft/playwright packages/isomorphic/codegen/javascript.ts (quoteMultiline)
 - src/main/kotlin/dev/uzi/pw/run/ReuseBrowserRunPatch.kt         <- src/testModel.ts, src/reusedBrowser.ts
 - src/main/kotlin/dev/uzi/pw/trace/TraceMatcher.kt               <- microsoft/playwright packages/playwright/src/worker/testInfo.ts, packages/utils/fileUtils.ts
+- src/main/kotlin/dev/uzi/pw/tests/TestTreeModel.kt              <- src/upstream/testTree.ts
