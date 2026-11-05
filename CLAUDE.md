@@ -34,7 +34,8 @@ src/main/kotlin/dev/uzi/pw/
   core/      PlaywrightProjectLocator NodeRunner DebugControllerClient Protocol PwModel PwStartupActivity PwTopics PwNotifications
   recorder/  RecorderService RecordNewAction RecordAtCursorAction InsertionTracker NewTestFile BootstrapRunner
   locator/   LocatorPicker PickLocatorAction HighlightLocatorAction
-  trace/     TraceService TraceWatcher TraceViewerPanel TraceIndex TraceProgramRunner
+  trace/     TraceService TraceWatcher TraceViewerPanel TraceIndex TraceRunPatch
+  run/       PlaywrightRunPatcher RunPatch HeadedRunPatch
   agents/    AgentService AgentBackend ClaudeCliBackend CodexCliBackend OpencodeCliBackend InitAgentsAction Plan/Generate/Heal actions
   ui/        PlaywrightToolWindowFactory RecordTab TracesTab AgentsTab
   settings/  PwSettings PwConfigurable

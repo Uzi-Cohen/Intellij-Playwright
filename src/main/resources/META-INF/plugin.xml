@@ -19,8 +19,9 @@
 
         <!-- Step 2: traces -->
         <postStartupActivity implementation="dev.uzi.pw.trace.TraceWatcherStartupActivity"/>
-        <programRunner id="dev.uzi.pw.traceRunner" order="first"
-                       implementation="dev.uzi.pw.trace.TraceProgramRunner"/>
+        <!-- One runner applies every run patch (trace, headed, reuse browser) to Playwright runs. -->
+        <programRunner id="dev.uzi.pw.runPatcher" order="first"
+                       implementation="dev.uzi.pw.run.PlaywrightRunPatcher"/>
 
         <!-- Step 5: agents -->
         <postStartupActivity implementation="dev.uzi.pw.agents.AgentsStartupCheck"/>

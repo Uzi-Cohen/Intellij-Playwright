@@ -58,6 +58,13 @@ class PwConfigurable(private val project: Project) : BoundConfigurable(PwBundle.
                         )
                 }
             }
+            group(PwBundle.message("settings.group.runs")) {
+                row {
+                    checkBox(PwBundle.message("toggle.showBrowser"))
+                        .bindSelected({ state.showBrowser }, { settings.setShowBrowser(it) })
+                        .comment(PwBundle.message("settings.showBrowser.comment"))
+                }
+            }
             group(PwBundle.message("settings.group.trace")) {
                 row {
                     checkBox(PwBundle.message("settings.trace.always"))

@@ -1,6 +1,7 @@
 /* Copyright 2026 Uzi Cohen. Licensed under the Apache License, Version 2.0. */
 package dev.uzi.pw.trace
 
+import dev.uzi.pw.run.PLAYWRIGHT_RUN_CONFIGURATION_TYPE_ID
 import com.intellij.execution.ExecutionListener
 import com.intellij.execution.ExecutionManager
 import com.intellij.execution.configurations.RunConfiguration
