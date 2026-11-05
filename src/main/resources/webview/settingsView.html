@@ -1,0 +1,86 @@
+<!--
+  Copyright (c) Microsoft Corporation.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  Modifications Copyright 2026 Uzi Cohen
+  Body of microsoft/playwright-vscode src/settingsView.ts htmlForWebview, for Playwright Toolkit.
+  "Run global setup on each run" is left out: Playwright runs started from IntelliJ always run global setup.
+-->
+<body class="settings-view">
+  <h2 class="section-header">TOOLS</h2>
+  <div id="actions" class="vbox"></div>
+  <div id="model-selector" class="vbox" style="display: none">
+    <h2 class="section-header">
+      CONFIGS
+    </h2>
+    <div class="combobox">
+      <select data-testid="models" id="models" title="Select Playwright Config"></select>
+    </div>
+  </div>
+  <div id="project-selector" class="vbox" style="display: none">
+    <h2 class="section-header">
+      PROJECTS
+      <div class="section-toolbar">
+        <a id="selectAll" role="button" title="Select All">
+          <svg width="48" height="48" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M9 9H4v1h5V9z"/><path d="M7 12V7H6v5h1z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M5 3l1-1h7l1 1v7l-1 1h-2v2l-1 1H3l-1-1V6l1-1h2V3zm1 2h4l1 1v4h2V3H6v2zm4 1H3v7h7V6z"/></svg>
+        </a>
+        <a id="unselectAll" role="button" title="Unselect All" hidden>
+          <svg width="48" height="48" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M9 9H4v1h5V9z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M5 3l1-1h7l1 1v7l-1 1h-2v2l-1 1H3l-1-1V6l1-1h2V3zm1 2h4l1 1v4h2V3H6v2zm4 1H3v7h7V6z"/></svg>
+        </a>
+      </div>
+    </h2>
+    <div data-testid="projects" id="projects" class="vbox"></div>
+  </div>
+  <h2 class="section-header">SETUP</h2>
+  <div id="rareActions" class="vbox"></div>
+  <h2 class="section-header">SETTINGS</h2>
+  <div class="vbox">
+    <div class="action">
+      <label title="When enabled, Playwright will reuse the browser instance between tests. This will disable parallel execution.">
+        <input type="checkbox" setting="reuseBrowser"></input>
+        <div>Show browser</div>
+        <div class="inactive" style="padding-left: 5px;">— one worker</div>
+      </label>
+    </div>
+    <div class="action">
+      <label>
+        <input type="checkbox" setting="showTrace"></input>
+        <div>Show trace viewer</div>
+      </label>
+    </div>
+    <div class="hbox">
+      <label id="updateSnapshotLabel">Update snapshots</label>
+    </div>
+    <div class="combobox">
+      <select setting="updateSnapshots" aria-labelledby="updateSnapshotLabel">
+        <option value="no-override">no override</option>
+        <option value="all">all</option>
+        <option value="changed">changed</option>
+        <option value="missing">missing</option>
+        <option value="none">none</option>
+      </select>
+    </div>
+    <div class="hbox">
+      <label id="updateSourceMethod">Update method</label>
+    </div>
+    <div class="combobox">
+      <select setting="updateSourceMethod" aria-labelledby="updateSourceMethod">
+        <option value="no-override">no override</option>
+        <option value="overwrite">overwrite</option>
+        <option value="patch">patch</option>
+        <option value="3way">3-way</option>
+      </select>
+    </div>
+  </div>
+</body>

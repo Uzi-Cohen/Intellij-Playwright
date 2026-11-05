@@ -297,7 +297,7 @@ class TestTreePanel(private val project: Project, private val parentDisposable: 
         if (debug) AllIcons.Actions.StartDebugger else AllIcons.Actions.RunAll,
     ) {
         init {
-            if (!debug) templatePresentation.putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true)
+            // Icon-only, like the VS Code Testing view's title bar (the text is in the tooltip).
         }
 
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
@@ -317,7 +317,7 @@ class TestTreePanel(private val project: Project, private val parentDisposable: 
         if (debug) AllIcons.Actions.StartDebugger else AllIcons.Actions.Execute,
     ) {
         init {
-            if (showText) templatePresentation.putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true)
+            // Icon-only, like the VS Code Testing view's title bar (the text is in the tooltip).
         }
 
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT

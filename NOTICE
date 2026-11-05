@@ -22,3 +22,9 @@ Files derived from Microsoft sources (they keep Microsoft's copyright header):
 - src/main/kotlin/dev/uzi/pw/run/ReuseBrowserRunPatch.kt         <- src/testModel.ts, src/reusedBrowser.ts
 - src/main/kotlin/dev/uzi/pw/trace/TraceMatcher.kt               <- microsoft/playwright packages/playwright/src/worker/testInfo.ts, packages/utils/fileUtils.ts
 - src/main/kotlin/dev/uzi/pw/tests/TestTreeModel.kt              <- src/upstream/testTree.ts
+- src/main/resources/webview/common.css                        <- media/common.css (unchanged)
+- src/main/resources/webview/common.js                         <- src/common.ts
+- src/main/resources/webview/settingsView.html, settingsView.js <- src/settingsView.ts, src/settingsView.script.ts
+- src/main/resources/webview/locatorsView.html, locatorsView.js <- src/locatorsView.ts, src/locatorsView.script.ts
+- src/main/kotlin/dev/uzi/pw/ui/webview/SettingsWebView.kt     <- src/settingsView.ts
+- src/main/kotlin/dev/uzi/pw/ui/webview/LocatorsWebView.kt     <- src/locatorsView.ts

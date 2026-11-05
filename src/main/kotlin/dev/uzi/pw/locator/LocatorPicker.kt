@@ -44,6 +44,11 @@ class LocatorPicker(private val project: Project, private val cs: CoroutineScope
     var ariaSnapshot: String = ""
         private set
 
+    /** Error from the last `highlight({ selector })`, shown under the locator field (locatorsView.ts `_locator.error`). */
+    @Volatile
+    var locatorError: String? = null
+        private set
+
     /** Error from the last `highlight({ ariaTemplate })`, shown under the aria field (locatorsView.ts `_ariaSnapshot.error`). */
     @Volatile
     var ariaError: String? = null
@@ -66,6 +71,9 @@ class LocatorPicker(private val project: Project, private val cs: CoroutineScope
         this.locator = locator
         this.ariaSnapshot = ariaSnapshot
         this.ariaError = null
+        this.locatorError = null
+        // reusedBrowser.ts: copy the picked locator when "Copy on pick" is on.
+        if (dev.uzi.pw.settings.PwSettings.getInstance(project).state.pickLocatorCopyToClipboard && locator.isNotEmpty()) copy(locator)
         publish()
         cs.launch(Dispatchers.EDT) {
             ToolWindowManager.getInstance(project).getToolWindow("Playwright")?.show()
@@ -109,10 +117,16 @@ class LocatorPicker(private val project: Project, private val cs: CoroutineScope
 
     private suspend fun highlightSelector(text: String) {
         val client = RecorderService.getInstance(project).currentClient() ?: return
-        try {
+        val error = try {
             if (text.isBlank()) client.hideHighlight() else client.highlight(HighlightParams(selector = text))
+            null
         } catch (e: PwException) {
             LOG.info("highlight failed: ${e.message}")
+            e.message ?: e.toString()
+        }
+        if (error != locatorError) {
+            locatorError = error
+            publish()
         }
     }
 
