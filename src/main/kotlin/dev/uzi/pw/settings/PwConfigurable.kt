@@ -88,6 +88,17 @@ class PwConfigurable(private val project: Project) : BoundConfigurable(PwBundle.
                         .component
                 }
             }
+            group(PwBundle.message("settings.group.reports")) {
+                row {
+                    checkBox(PwBundle.message("settings.reports.openAfterRun"))
+                        .bindSelected({ state.openReportAfterRun }, { state.openReportAfterRun = it })
+                }
+                row {
+                    checkBox(PwBundle.message("settings.reports.cleanAllure"))
+                        .bindSelected({ state.cleanAllureResults }, { state.cleanAllureResults = it })
+                        .comment(PwBundle.message("settings.reports.cleanAllure.comment"))
+                }
+            }
             group(PwBundle.message("settings.group.agents")) {
                 row(PwBundle.message("settings.agents.backend")) {
                     comboBox(

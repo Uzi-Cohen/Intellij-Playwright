@@ -30,6 +30,7 @@ class PlaywrightToolWindowFactory : ToolWindowFactory, DumbAware {
         toolWindow.setTitleActions(listOf(ShowBrowserToggle(), ReuseBrowserToggle(), ConfigPickerAction()))
         addTab(toolWindow, PwBundle.message("toolwindow.tab.record")) { d -> RecordTab(project, d).component }
         addTab(toolWindow, PwBundle.message("toolwindow.tab.traces")) { d -> TracesTab(project, d).component }
+        addTab(toolWindow, PwBundle.message("toolwindow.tab.reports")) { d -> ReportsTab(project, d).component }
         addTab(toolWindow, PwBundle.message("toolwindow.tab.agents")) { d -> AgentsTab(project, d).component }
     }
 
