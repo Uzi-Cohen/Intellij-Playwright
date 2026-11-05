@@ -8,6 +8,8 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
@@ -100,7 +102,7 @@ class RecordTab(private val project: Project, private val parentDisposable: Disp
         body.border = JBUI.Borders.empty(8)
 
         val group = DefaultActionGroup().apply {
-            add(TabAction(PwBundle.message("record.action.recordNew"), AllIcons.Actions.StartDebugger, { canStart() }) {
+            add(TabAction(PwBundle.message("record.action.recordNew"), AllIcons.Ide.Macro.Recording_1, { canStart() }) {
                 PlaywrightProjectLocator.getInstance(project).selectedConfig()?.takeIf { it.isSupported }?.let { RecordNewAction.start(project, it) }
             })
             add(TabAction(PwBundle.message("record.action.recordAtCursor"), AllIcons.Actions.Edit, { canStart() }) {
@@ -119,6 +121,7 @@ class RecordTab(private val project: Project, private val parentDisposable: Disp
             })
         }
         val toolbar = ActionManager.getInstance().createActionToolbar("PlaywrightRecordTab", group, true)
+        toolbar.layoutStrategy = ToolbarLayoutStrategy.WRAP_STRATEGY
 
         component = SimpleToolWindowPanel(true, true).apply {
             toolbar.targetComponent = this
@@ -192,6 +195,11 @@ class RecordTab(private val project: Project, private val parentDisposable: Disp
         private val enabled: () -> Boolean,
         private val perform: () -> Unit,
     ) : DumbAwareAction(text, text, icon) {
+        init {
+            // Show the label next to the icon: icon-only buttons don't say what they do.
+            templatePresentation.putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true)
+        }
+
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
         override fun update(e: AnActionEvent) {
             e.presentation.isEnabled = enabled()

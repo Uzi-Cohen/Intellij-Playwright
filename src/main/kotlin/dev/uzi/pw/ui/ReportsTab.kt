@@ -7,6 +7,8 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -62,6 +64,7 @@ class ReportsTab(private val project: Project, parentDisposable: Disposable) {
             })
         }
         val toolbar = ActionManager.getInstance().createActionToolbar("PlaywrightReportsTab", group, true)
+        toolbar.layoutStrategy = ToolbarLayoutStrategy.WRAP_STRATEGY
         val body = JPanel(BorderLayout()).apply {
             add(status, BorderLayout.NORTH)
             add(web.component, BorderLayout.CENTER)
@@ -116,6 +119,11 @@ class ReportsTab(private val project: Project, parentDisposable: Disposable) {
         private val enabled: () -> Boolean,
         private val perform: () -> Unit,
     ) : DumbAwareAction(text, text, icon) {
+        init {
+            // Show the label next to the icon: icon-only buttons don't say what they do.
+            templatePresentation.putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true)
+        }
+
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
         override fun update(e: AnActionEvent) {
             e.presentation.isEnabled = enabled()

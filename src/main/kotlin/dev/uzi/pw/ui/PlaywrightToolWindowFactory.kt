@@ -2,6 +2,8 @@
 package dev.uzi.pw.ui
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
@@ -27,7 +29,11 @@ class PlaywrightToolWindowFactory : ToolWindowFactory, DumbAware {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        toolWindow.setTitleActions(listOf(ShowBrowserToggle(), ReuseBrowserToggle(), ConfigPickerAction()))
+        // Only the config picker in the title bar; anything wider pushes the content tabs out of view.
+        toolWindow.setTitleActions(listOf(ConfigPickerAction()))
+        toolWindow.setAdditionalGearActions(
+            DefaultActionGroup(ShowBrowserToggle(), ReuseBrowserToggle(), Separator.getInstance(), OpenPlaywrightSettingsAction()),
+        )
         addTab(toolWindow, PwBundle.message("toolwindow.tab.record")) { d -> RecordTab(project, d).component }
         addTab(toolWindow, PwBundle.message("toolwindow.tab.traces")) { d -> TracesTab(project, d).component }
         addTab(toolWindow, PwBundle.message("toolwindow.tab.reports")) { d -> ReportsTab(project, d).component }
