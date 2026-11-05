@@ -12,3 +12,9 @@ Debug controller protocol shapes are taken from Playwright
 Copyright (c) Microsoft Corporation, licensed under the Apache License, Version 2.0.
 
 Files derived from Microsoft sources (they keep Microsoft's copyright header):
+- src/main/kotlin/dev/uzi/pw/core/Protocol.kt                    <- src/backend.ts, src/reusedBrowser.ts (shapes: protocol.yml v1.56.0)
+- src/main/kotlin/dev/uzi/pw/core/DebugControllerClient.kt       <- src/backend.ts, src/reusedBrowser.ts
+- src/main/kotlin/dev/uzi/pw/core/PlaywrightProjectLocator.kt    <- src/playwrightFinder.ts
+- src/main/kotlin/dev/uzi/pw/recorder/RecorderService.kt         <- src/reusedBrowser.ts, src/extension.ts
+- src/main/kotlin/dev/uzi/pw/recorder/InsertionTracker.kt        <- src/reusedBrowser.ts (guessIndentation, indentBlock)
+- src/main/kotlin/dev/uzi/pw/trace/TraceService.kt               <- src/spawnTraceViewer.ts
