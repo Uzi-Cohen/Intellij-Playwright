@@ -1,0 +1,45 @@
+<!--
+  Copyright (c) Microsoft Corporation.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  Modifications Copyright 2026 Uzi Cohen
+  Body of microsoft/playwright-vscode src/locatorsView.ts htmlForWebview, for Playwright Toolkit.
+  Added: small "insert at caret" buttons next to each field (#locatorExtra, #ariaExtra).
+-->
+<body class="locators-view">
+  <div class="section">
+    <div class="hbox">
+      <div class="actions" id="actions"></div>
+      <label id="locatorLabel">Locator</label>
+      <div class="hbox" id="locatorSpacer"></div>
+      <div class="actions" id="locatorExtra"></div>
+      <label id="copyToClipboardLabel" title="Automatically copy picked locator to clipboard">
+        <input id="copyToClipboardCheckbox" type="checkbox">
+        Copy on pick
+      </label>
+    </div>
+    <input id="locator" placeholder="Locator" aria-labelledby="locatorLabel">
+    <p id="locatorError" class="error"></p>
+  </div>
+  <div id="ariaSection" class="section">
+    <div class="hbox">
+      <div class="actions" id="actions-2"></div>
+      <label id="ariaLabel">Aria</label>
+      <div class="hbox"></div>
+      <div class="actions" id="ariaExtra"></div>
+    </div>
+    <textarea id="ariaSnapshot" placeholder="Aria" rows="10" aria-labelledby="ariaLabel"></textarea>
+    <p id="ariaSnapshotError" class="error"></p>
+  </div>
+</body>

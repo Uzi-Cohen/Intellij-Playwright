@@ -58,6 +58,8 @@ class PwSettings(private val project: Project) : SimplePersistentStateComponent<
         var updateSnapshots by string("no-override")
         /** SETTINGS "Update method": no-override | overwrite | patch | 3way. */
         var updateSourceMethod by string("no-override")
+        /** LOCATORS "Copy on pick" (playwright-vscode `playwright.pickLocatorCopyToClipboard`, default false). */
+        var pickLocatorCopyToClipboard by property(false)
     }
 
     /** The test id attribute the user set in settings, or null. Resolve the effective value with PlaywrightProjectLocator.testIdAttribute. */
@@ -90,6 +92,11 @@ class PwSettings(private val project: Project) : SimplePersistentStateComponent<
         } catch (e: Exception) {
             emptyMap()
         }
+    }
+
+    fun setPickLocatorCopyToClipboard(enabled: Boolean) {
+        state.pickLocatorCopyToClipboard = enabled
+        changed()
     }
 
     fun setUpdateSnapshots(mode: String) {

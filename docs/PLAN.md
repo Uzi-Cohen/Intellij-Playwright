@@ -628,3 +628,14 @@ The Traces, Reports and Agents tabs stay as extras. The title-bar config picker 
 5. **Show browser:** one headed browser stays open between runs, with one worker. Turning Show trace viewer on turns Show browser off, and the reverse.
 6. **Update snapshots = all:** a screenshot test rewrites its snapshot. No override: no flag is added.
 7. **TOOLS and LOCATORS:** Pick locator fills LOCATORS, and editing it highlights in the browser. Record new and Record at cursor still work. Clear cache runs in the Run window.
+
+### PLAYWRIGHT and LOCATORS are now vscode's own pages
+**Why:** the Swing version had the right sections but did not look like VS Code.
+
+**What changed:**
+- **The pages:** the PLAYWRIGHT and LOCATORS views now render playwright-vscode's own webview pages in JCEF: `media/common.css` unchanged, and the settings/locators HTML and scripts ported to plain JS (`resources/webview/`).
+- **Colours:** the `--vscode-*` colour variables are filled from the IDE theme, and the pages reload when the theme changes.
+- **Messages:** `vscode.postMessage` goes through a `JBCefJSQuery`, and the plugin sends `window.postMessage`, the same messages as the extension (`settings`, `models`, `actions`, `update`, `execute`, `toggle`, `set`, `setProjectEnabled`, `selectModel`, `locatorChanged`, `ariaSnapshotChanged`).
+- **Added:** "Copy on pick" (vscode's `pickLocatorCopyToClipboard`) and locator highlight errors.
+- **Layout:** the tab is TESTS (icon-only toolbar) / PLAYWRIGHT / LOCATORS, each with a small uppercase view header.
+- **Fallback:** without JCEF, the Swing versions are used.
