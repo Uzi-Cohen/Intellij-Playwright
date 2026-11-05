@@ -21,3 +21,22 @@ class ShowBrowserToggle : CheckboxAction(PwBundle.message("toggle.showBrowser"),
         PwSettings.getInstance(project).setShowBrowser(state)
     }
 }
+
+/** Tool window toolbar checkbox for "Reuse browser" (enabled only with Show browser). */
+class ReuseBrowserToggle : CheckboxAction(PwBundle.message("toggle.reuseBrowser"), PwBundle.message("toggle.reuseBrowser.description"), null), DumbAware {
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+    override fun update(e: AnActionEvent) {
+        super.update(e)
+        e.presentation.isEnabled = e.project?.let { PwSettings.getInstance(it).state.showBrowser } ?: false
+    }
+
+    override fun isSelected(e: AnActionEvent): Boolean =
+        e.project?.let { PwSettings.getInstance(it).state.reuseBrowser } ?: false
+
+    override fun setSelected(e: AnActionEvent, state: Boolean) {
+        val project = e.project ?: return
+        PwSettings.getInstance(project).setReuseBrowser(state)
+    }
+}
