@@ -461,3 +461,84 @@ Non-blocking (decided, flagged so you can override):
 3. **Calls:** `initialize({ interceptStdio: true, closeOnDisconnect: true, serializer? })`, `runGlobalSetup({})`, `runGlobalTeardown({})`, and the `stdio` / report events. The reports are teleporter messages (`TeleReporterReceiver`); the minimum is to print `stdio` text and the returned `status` to a console.
 4. **Lifetime:** keep the server process alive between setup and teardown, and tear it down on project close.
 5. **Env:** the `env` that `runGlobalSetup` returns would have to be injected into IntelliJ test runs through a new `RunPatchContributor`, so the runs see what the setup exported. Even then, the runs would execute the config's own global setup again, because the CLI cannot skip it. That gap is why this was left out.
+
+---
+
+## 15. Round 2: what changed, differences from the brief, what to test
+
+### 1. Aria snapshot from Pick locator (`29ed58b`)
+**Changed**
+- `LocatorPicker` keeps `ariaSnapshot` from `inspectRequested`.
+- The Record tab shows it in a YAML editor field (plain text when the YAML plugin is disabled) with Copy and Insert Assertion buttons.
+- Edits call `highlight({ ariaTemplate })` after a 300 ms debounce; the server's error appears in red under the field.
+- Insert Assertion writes `await expect(page.<locator>).toMatchAriaSnapshot(...)` at the caret. The snapshot is quoted with a port of Playwright codegen's `quoteMultiline` (`locator/AriaSnapshotCode.kt`) and indented with `InsertionTracker.indentBlock` / `guessBodyIndentation`.
+
+**Differs from the brief**
+- The field is **editable**, not read-only. playwright-vscode's aria field is an editable textarea whose edits drive `highlightAria`, and the brief also asked for edits to highlight.
+- The assertion is `expect(page.<locator>)`, not `expect(<locator>)`, because that is exactly what Playwright codegen emits (`assertSnapshot` case, subject `page`).
+
+**Test**
+1. Pick an element: the snapshot appears.
+2. Edit the snapshot: the matching elements highlight, and an invalid YAML or template shows an error.
+3. Insert Assertion inside a test body (caret on an empty line, and at the end of a line): check the indentation and the backtick formatting for single- and multi-line snapshots.
+4. Disable the YAML plugin: the field falls back to plain text.
+
+### 2. testIdAttribute from the Playwright config (`561924c`)
+**Changed**
+- `js/pw-config-reporter.cjs` is shipped and extracted to `<system>/pw-toolkit/js/`.
+- `projects()` runs `test --list --reporter=<path>` and reads the `PW_TOOLKIT_PROJECTS {...}` line: name, testDir, outputDir, and `use.testIdAttribute`.
+- Before writing the reporter I confirmed in `config.ts` that `FullProject.use` is the merged config, project and CLI `use`, and that `onBegin` runs in list mode.
+- Priority: the setting (now empty by default), then the config value (the record-new project, else the first project with one), then `data-testid`.
+- The settings page shows the detected value as the field's placeholder and in a comment.
+
+**Differs from the brief:** nothing. Note that the codegen fallback uses the cached value, because it runs on the EDT without calling Playwright.
+
+**Test**
+1. Set `use: { testIdAttribute: 'data-qa' }` in the config and leave the setting empty. Record and pick: the generated locators use `getByTestId` for `data-qa`. The settings page shows `data-qa`.
+2. Set the setting to something else: it wins.
+3. Remove the config value: `data-testid` is used.
+4. A per-project `use.testIdAttribute` is used for Record New with that project.
+
+### 3. Show browser toggle (`5e5d45a`)
+**Changed**
+- `TraceProgramRunner` is now `run/PlaywrightRunPatcher`. It is one program runner that, while any `RunPatchContributor` is active, collects `RunPatch(cliArgs, env)` from all of them.
+  - The collection runs in the background, because a contributor may need to start the browser.
+  - It clones the Playwright run configuration, appends the args to the CLI options and merges the env into the env data, then hands the clone to the normal runner.
+- Contributors: `TraceRunPatch` (same rule as before: `--trace on` unless the config already has `--trace`) and `HeadedRunPatch` (`--headed` unless already present).
+- A "Show browser" checkbox sits in the tool window title bar and in settings.
+
+**Differs from the brief:** the patcher starts the run asynchronously, and after a patch failure it runs without the patch and shows a warning.
+
+**Test**
+1. Show browser on: runs and debug sessions from gutter icons and the Run menu open a headed browser; off: headless.
+2. Always record trace still adds `--trace on` and traces appear in the Traces tab.
+3. A config that already has `--headed` or `--trace` in its CLI options isn't doubled.
+4. Rerun from the test tree.
+
+### 4. Reuse browser between runs (`8f21a2d`)
+**Changed**
+- `ReuseBrowserRunPatch` makes runs use the debug controller's browser: `PW_TEST_CONNECT_WS_ENDPOINT=<run-server ws>`, `PW_TEST_REUSE_CONTEXT=1`, `--workers 1` and `--trace off`, matching what playwright-vscode `testModel.ts runTests` passes while its show-browser setting is on.
+- Ported from `reusedBrowser.ts`:
+  - The browser starts before the run, and any recording or picking is stopped first.
+  - While tests run, page count 0 does not close the browser.
+  - After the run, the browser closes if it has no pages left.
+  - Turning reuse (or Show browser) off closes a browser that was opened for runs.
+  - Close browser and recording are blocked while tests run in it.
+- Reuse requires Show browser, and Reuse and "Always record trace" turn each other off (vscode's showBrowser/showTrace rule).
+- A "Reuse browser" checkbox sits next to Show browser.
+
+**Differs from the brief**
+- In playwright-vscode, show browser and reuse are **one** setting (`playwright.reuseBrowser`, labelled Show browser). Here they are two, with reuse only allowed when Show browser is on, as the brief asked.
+- vscode also forces `video: 'off'`; `playwright test` has no video flag. Playwright only reuses the context when video is off (`index.ts _reuseContext`), so with video on, tests still use the shared browser but get fresh contexts.
+- Reuse also applies to debug runs. vscode connects debug runs to the same browser, with `reuseContext: false`.
+
+**Test**
+1. Show browser + Reuse on: run a test twice. One browser stays open and the second run reuses it; only one worker is used.
+2. Close a page by hand mid-run: the browser does not close until the run ends.
+3. Close browser while a run is going: you get the warning. After the run it works.
+4. Turn reuse on with Always record trace on: trace turns off (settings and toolbar), and the reverse.
+5. Turn Show browser off: the reused browser closes.
+6. Start a recording, then run a test: the recording stops and the test runs in the same browser.
+
+### 5. Global setup and teardown
+**Not built.** It only works through the test-server protocol; see section 14 for why and what it would take. No changes to code.
