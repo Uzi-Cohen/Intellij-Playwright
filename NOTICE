@@ -18,3 +18,4 @@ Files derived from Microsoft sources (they keep Microsoft's copyright header):
 - src/main/kotlin/dev/uzi/pw/recorder/RecorderService.kt         <- src/reusedBrowser.ts, src/extension.ts
 - src/main/kotlin/dev/uzi/pw/recorder/InsertionTracker.kt        <- src/reusedBrowser.ts (guessIndentation, indentBlock)
 - src/main/kotlin/dev/uzi/pw/trace/TraceService.kt               <- src/spawnTraceViewer.ts
+- src/main/kotlin/dev/uzi/pw/locator/AriaSnapshotCode.kt          <- microsoft/playwright packages/isomorphic/codegen/javascript.ts (quoteMultiline)
