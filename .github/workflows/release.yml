@@ -1,0 +1,114 @@
+# Signs and publishes to JetBrains Marketplace when a GitHub release is published
+# (prereleased or released) or a version tag is pushed (0.1.0, v0.1.0, 0.2.0-beta.1).
+#
+# Publishing a release from the GitHub UI fires the release event and does not also fire push,
+# so the two triggers do not publish the same version twice.
+#
+# Requires Actions secrets: PUBLISH_TOKEN, CERTIFICATE_CHAIN, PRIVATE_KEY, PRIVATE_KEY_PASSWORD.
+# https://plugins.jetbrains.com/docs/intellij/plugin-signing.html
+# Modeled on https://github.com/JetBrains/intellij-platform-plugin-template/blob/main/.github/workflows/release.yml
+
+name: Release
+on:
+  release:
+    types: [prereleased, released]
+  push:
+    tags:
+      - "[0-9].[0-9]*"
+      - "[0-9][0-9].[0-9]*"
+      - "v[0-9].[0-9]*"
+      - "v[0-9][0-9].[0-9]*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.release.tag_name || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish Plugin
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Maximize Build Space
+        uses: jlumbroso/free-disk-space@v2.0.0
+        with:
+          preinstalled-runtimes: false
+          large-packages: false
+
+      - name: Fetch Sources
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Check tag matches plugin version
+        run: |
+          VERSION=$(./gradlew properties --property version --quiet --console=plain | sed -n 's/^version: //p' | tail -n 1)
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match pluginVersion ${VERSION} in gradle.properties."
+            exit 1
+          fi
+
+      # The published release body becomes the [version] section. A tag push has no release body,
+      # so change notes stay on the Unreleased section already rendered into plugin.xml.
+      - name: Patch Changelog
+        if: ${{ github.event_name == 'release' && github.event.release.body != '' }}
+        env:
+          CHANGELOG: ${{ github.event.release.body }}
+        run: |
+          RELEASE_NOTE="./build/tmp/release_note.txt"
+          mkdir -p "$(dirname "$RELEASE_NOTE")"
+          printf '%s\n' "$CHANGELOG" > "$RELEASE_NOTE"
+          ./gradlew patchChangelog --release-note-file="$RELEASE_NOTE"
+
+      - name: Publish Plugin
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew signPlugin publishPlugin
+
+      - name: Upload Release Asset
+        if: ${{ github.event_name == 'release' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" ./build/distributions/*
+
+      - name: Create Pull Request
+        if: ${{ github.event_name == 'release' && github.event.release.body != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          BRANCH="changelog-update-$VERSION"
+          LABEL="release changelog"
+
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+
+          git checkout -b "$BRANCH"
+          git commit -am "chore(changelog): update for $VERSION"
+          git push --set-upstream origin "$BRANCH"
+
+          gh label create "$LABEL" \
+            --description "Pull requests with release changelog update" \
+            --force \
+            || true
+
+          gh pr create \
+            --title "Changelog update - \`$VERSION\`" \
+            --body "Current pull request contains patched \`CHANGELOG.md\` file for the \`$VERSION\` version." \
+            --label "$LABEL" \
+            --head "$BRANCH"

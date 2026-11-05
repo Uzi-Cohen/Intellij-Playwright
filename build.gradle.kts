@@ -1,3 +1,5 @@
+import org.gradle.jvm.tasks.Jar
+import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
@@ -44,9 +46,41 @@ intellijPlatform {
             }
         }
 
+        // Local variable: the changelog extension is not configuration-cache safe to touch from a task action.
+        val changelog = project.changelog
+        changeNotes = providers.gradleProperty("pluginVersion").map { pluginVersion ->
+            with(changelog) {
+                renderItem(
+                    (getOrNull(pluginVersion) ?: getUnreleased())
+                        .withHeader(false)
+                        .withEmptySections(false),
+                    Changelog.OutputType.HTML,
+                )
+            }
+        }
+
         ideaVersion {
             sinceBuild = "261"
+            // Null omits until-build. An empty assignment would fall back to the platform default (261.*),
+            // which would hide the plugin from 2026.2 and later.
             untilBuild = provider { null }
+        }
+    }
+
+    // Secrets are repository Actions secrets. Absent values leave signPlugin/publishPlugin unconfigured,
+    // so buildPlugin and verifyPlugin still run locally and on pull requests.
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+        // 0.2.0-beta.1 publishes to the "beta" channel; a release version uses the public default channel.
+        channels = providers.gradleProperty("pluginVersion").map { pluginVersion ->
+            val channel = pluginVersion.substringAfter('-', "").substringBefore('.').substringBefore('+')
+            listOf(channel.ifEmpty { "default" })
         }
     }
 
@@ -62,4 +96,12 @@ intellijPlatform {
 changelog {
     groups.empty()
     repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
+}
+
+// Apache 2.0 requires the license and NOTICE to travel with the distributed plugin.
+// jarSearchableOptions is also a Jar; it must stay an index, not a second copy of the license.
+tasks.withType<Jar>().configureEach {
+    if (name == "jarSearchableOptions") return@configureEach
+    from(layout.projectDirectory.file("LICENSE"))
+    from(layout.projectDirectory.file("NOTICE"))
 }
