@@ -1,10 +1,9 @@
 /* Copyright 2026 Uzi Cohen. Licensed under the Apache License, Version 2.0. */
 package dev.uzi.pw.actions
 
-import com.intellij.execution.ui.ConsoleView
+import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.execution.ui.RunContentManager
-import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -27,17 +26,22 @@ class InstallBrowsersAction : PwActionBase() {
 
     companion object {
         fun run(project: Project, config: PwConfig) {
+            runInConsole(project, config, listOf("install"), PwBundle.message("action.installBrowsers.tab"))
+        }
+
+        /** `node <cli.js> [args]` for [config], with its output in a Run tool window tab titled [title]. */
+        fun runInConsole(project: Project, config: PwConfig, args: List<String>, title: String) {
             val runner = NodeRunner.getInstance(project)
             val cmd = try {
-                runner.commandLine(config, listOf("install"))
+                runner.commandLine(config, args)
             } catch (ex: PwException) {
                 PwNotifications.error(project, ex.message ?: "")
                 return
             }
-            val console: ConsoleView = runner.createConsole()
+            val console = runner.createConsole()
             val handler = runner.start(cmd, console)
             val panel = JPanel(BorderLayout()).apply { add(console.component, BorderLayout.CENTER) }
-            val descriptor = RunContentDescriptor(console, handler, panel, PwBundle.message("action.installBrowsers.tab"))
+            val descriptor = RunContentDescriptor(console, handler, panel, title)
             Disposer.register(descriptor, console)
             RunContentManager.getInstance(project).showRunContent(DefaultRunExecutor.getRunExecutorInstance(), descriptor)
         }

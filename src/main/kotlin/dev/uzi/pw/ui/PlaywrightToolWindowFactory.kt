@@ -29,12 +29,12 @@ class PlaywrightToolWindowFactory : ToolWindowFactory, DumbAware {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        // Only the config picker in the title bar; anything wider pushes the content tabs out of view.
-        toolWindow.setTitleActions(listOf(ConfigPickerAction()))
+        // Nothing wide in the title bar, so the tabs stay visible; the config is picked in the CONFIGS section.
         toolWindow.setAdditionalGearActions(
             DefaultActionGroup(ShowBrowserToggle(), ReuseBrowserToggle(), Separator.getInstance(), OpenPlaywrightSettingsAction()),
         )
-        addTab(toolWindow, PwBundle.message("toolwindow.tab.record")) { d -> RecordTab(project, d).component }
+        // Like playwright-vscode's Testing sidebar: test tree + PLAYWRIGHT + LOCATORS. The other tabs are extras.
+        addTab(toolWindow, PwBundle.message("toolwindow.tab.playwright")) { d -> PlaywrightPanel(project, d).component }
         addTab(toolWindow, PwBundle.message("toolwindow.tab.traces")) { d -> TracesTab(project, d).component }
         addTab(toolWindow, PwBundle.message("toolwindow.tab.reports")) { d -> ReportsTab(project, d).component }
         addTab(toolWindow, PwBundle.message("toolwindow.tab.agents")) { d -> AgentsTab(project, d).component }

@@ -52,6 +52,12 @@ class PwSettings(private val project: Project) : SimplePersistentStateComponent<
         var envFile by string()
         /** Also use the env vars and env file of the project's Playwright run configurations. */
         var envFromRunConfigurations by property(true)
+        /** Unchecked PROJECTS per config file path, as a JSON object of string arrays. */
+        var disabledProjectsJson by string()
+        /** SETTINGS "Update snapshots": no-override | all | changed | missing | none. */
+        var updateSnapshots by string("no-override")
+        /** SETTINGS "Update method": no-override | overwrite | patch | 3way. */
+        var updateSourceMethod by string("no-override")
     }
 
     /** The test id attribute the user set in settings, or null. Resolve the effective value with PlaywrightProjectLocator.testIdAttribute. */
@@ -61,6 +67,40 @@ class PwSettings(private val project: Project) : SimplePersistentStateComponent<
     /** Reuse browser is on and allowed (it requires Show browser, as in playwright-vscode where both are one setting). */
     val isReuseBrowserEffective: Boolean
         get() = state.showBrowser && state.reuseBrowser
+
+    fun disabledProjects(configPath: String): Set<String> = allDisabledProjects()[configPath].orEmpty()
+
+    fun setProjectEnabled(configPath: String, projectName: String, enabled: Boolean) {
+        val all = allDisabledProjects().toMutableMap()
+        val set = all[configPath].orEmpty().toMutableSet()
+        if (enabled) set.remove(projectName) else set.add(projectName)
+        if (set.isEmpty()) all.remove(configPath) else all[configPath] = set
+        state.disabledProjectsJson = if (all.isEmpty()) null else JsonObject(
+            all.mapValues { (_, v) -> kotlinx.serialization.json.JsonArray(v.sorted().map { JsonPrimitive(it) }) },
+        ).toString()
+        changed()
+    }
+
+    private fun allDisabledProjects(): Map<String, Set<String>> {
+        val json = state.disabledProjectsJson?.takeIf { it.isNotBlank() } ?: return emptyMap()
+        return try {
+            Json.parseToJsonElement(json).jsonObject.mapValues { (_, v) ->
+                (v as? kotlinx.serialization.json.JsonArray)?.map { it.jsonPrimitive.content }?.toSet().orEmpty()
+            }
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    fun setUpdateSnapshots(mode: String) {
+        state.updateSnapshots = mode
+        changed()
+    }
+
+    fun setUpdateSourceMethod(method: String) {
+        state.updateSourceMethod = method
+        changed()
+    }
 
     fun envVars(): Map<String, String> {
         val json = state.envVarsJson?.takeIf { it.isNotBlank() } ?: return emptyMap()

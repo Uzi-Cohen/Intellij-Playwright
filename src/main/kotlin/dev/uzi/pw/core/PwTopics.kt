@@ -15,6 +15,11 @@ fun interface PwRecorderStateListener {
     fun recorderStateChanged()
 }
 
+/** A test was selected in the test tree, or finished running. [file] is an absolute path, [line] 1-based. */
+fun interface PwTestSelectionListener {
+    fun testSelected(file: String, line: Int, titlePath: List<String>, projectName: String?)
+}
+
 fun interface PwReportsListener {
     fun reportsChanged()
 }
@@ -40,6 +45,10 @@ object PwTopics {
     @JvmField
     @Topic.ProjectLevel
     val REPORTS_CHANGED: Topic<PwReportsListener> = Topic(PwReportsListener::class.java, Topic.BroadcastDirection.NONE)
+
+    @JvmField
+    @Topic.ProjectLevel
+    val TEST_SELECTED: Topic<PwTestSelectionListener> = Topic(PwTestSelectionListener::class.java, Topic.BroadcastDirection.NONE)
 
     @JvmField
     @Topic.ProjectLevel

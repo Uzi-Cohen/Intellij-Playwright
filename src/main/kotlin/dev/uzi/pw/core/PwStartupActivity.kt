@@ -8,5 +8,9 @@ import com.intellij.openapi.startup.ProjectActivity
 class PwStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
         PlaywrightProjectLocator.getInstance(project).refresh()
+        // Listens for test selection / finished tests to open their traces ("Show trace viewer").
+        dev.uzi.pw.trace.ShowTraceOnSelection.getInstance(project)
+        // Tracks test results for the test tree even before the tool window is opened.
+        dev.uzi.pw.tests.TestResults.getInstance(project)
     }
 }

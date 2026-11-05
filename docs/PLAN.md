@@ -590,3 +590,41 @@ Non-blocking (decided, flagged so you can override):
 - The title bar now has only the config picker, labelled `<file> · <version>` with the full path in the tooltip.
 - Show browser / Reuse browser moved to the tool window's ⋮ options menu as checkable items, next to "Playwright Settings...". They are also still in settings.
 - The Record and Reports toolbars show text next to their icons and wrap when narrow. Record New uses a record icon.
+
+---
+
+## 17. Round 4: VS Code layout
+
+The owner asked for the plugin to look and work like Playwright Test for VS Code, including its test tree. This reverses the original "don't rebuild test running" decision for the tree only. Running still goes through IntelliJ's bundled Playwright run configurations.
+
+### The Playwright tab, top to bottom (as in vscode's Testing sidebar)
+
+**Test tree** (`tests/`, `ui/TestTreePanel`)
+- **Listing:** tests come from `test --list` with `js/pw-list-reporter.cjs`, grouped file → describe → test, merged across projects (a port of upstream `testTree.ts`). The list refreshes 1 s after a test file changes.
+- **Running:** Run / Debug a node, Run All / Debug All. A node becomes a `ConfigurationContext` on its PSI element; IntelliJ's own producer then creates a Playwright run configuration, which runs as a temporary configuration (so the run patcher applies).
+- **Status:** passed / failed / skipped / running, read from `SMTRunnerEventsListener` for Playwright runs and mapped to nodes by file and line.
+- **Navigation:** double-click goes to the source; there is speed search.
+
+**PLAYWRIGHT** (`ui/PlaywrightSidebar`, from vscode's `settingsView.ts`)
+- **TOOLS:** Pick locator, Record new, Record at cursor, Reveal test output (the Run tool window), Close all browsers. When recording or picking, there is a status line and Stop.
+- **CONFIGS:** the config picker.
+- **PROJECTS:** a checkbox per project, plus Select all / Unselect all. `ProjectSelectionRunPatch` adds `--project <name>` for each checked project when some are unchecked.
+- **SETUP:** Install browsers, Clear cache (`playwright clear-cache`), Set up reporting. Run global setup/teardown are not available (see section 14).
+- **SETTINGS:**
+  - **Show browser (one worker):** sets show browser + reuse browser together, like vscode's single `reuseBrowser` setting.
+  - **Show trace viewer:** records traces, and opens the selected test's trace (or a run's single finished test, like vscode's `_showTraceOnTestProgress`) in a new bottom **Playwright Trace** tool window. The trace is found with a port of Playwright's output-folder naming (`trace/TraceMatcher`).
+  - **Update snapshots / Update method:** `UpdateSnapshotsRunPatch` adds `--update-snapshots=<mode>` / `--update-source-method <m>`.
+  - Show browser and Show trace viewer turn each other off.
+
+**LOCATORS** (`ui/LocatorsSection`): the editable locator and aria snapshot fields with Copy / Insert. This replaces the old Record tab.
+
+The Traces, Reports and Agents tabs stay as extras. The title-bar config picker is gone; CONFIGS replaces it.
+
+### Test
+1. **Tree:** open a project; the tree lists every test (file → describe → test). Add a test and save: it appears after about 1 s.
+2. **Running from the tree:** Run on a file, a describe and a single test: the right scope runs in the Run window, and the icons turn green or red. Debug stops at a breakpoint. Run All runs everything.
+3. **PROJECTS:** uncheck firefox and webkit, run a test: only chromium runs. Check all again: no `--project` is added.
+4. **Show trace viewer:** turn it on, run one test from the tree, and its trace opens in Playwright Trace. Click another test that has a trace: the viewer switches to it.
+5. **Show browser:** one headed browser stays open between runs, with one worker. Turning Show trace viewer on turns Show browser off, and the reverse.
+6. **Update snapshots = all:** a screenshot test rewrites its snapshot. No override: no flag is added.
+7. **TOOLS and LOCATORS:** Pick locator fills LOCATORS, and editing it highlights in the browser. Record new and Record at cursor still work. Clear cache runs in the Run window.
