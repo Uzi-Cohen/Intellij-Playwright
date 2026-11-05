@@ -12,11 +12,12 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import dev.uzi.pw.core.PwTopics
 
 /** Project-level settings. The LLM API key is kept in [PasswordSafe], never in this state. */
 @Service(Service.Level.PROJECT)
 @State(name = "PlaywrightSettings", storages = [Storage("playwright.xml")])
-class PwSettings : SimplePersistentStateComponent<PwSettings.State>(State()) {
+class PwSettings(private val project: Project) : SimplePersistentStateComponent<PwSettings.State>(State()) {
 
     class State : BaseState() {
         /** Path to a node executable; empty means the IDE's configured Node interpreter. */
@@ -27,6 +28,8 @@ class PwSettings : SimplePersistentStateComponent<PwSettings.State>(State()) {
         var alwaysRecordTrace by property(false)
         /** Add --headed to Playwright runs started from the IDE. */
         var showBrowser by property(false)
+        /** Run tests in the plugin's browser and keep it open between runs. Effective only with [showBrowser]. */
+        var reuseBrowser by property(false)
         /** One of [AgentBackendId] names. */
         var agentBackend by string(AgentBackendId.CLAUDE.name)
         var agentCliPath by string()
@@ -40,8 +43,36 @@ class PwSettings : SimplePersistentStateComponent<PwSettings.State>(State()) {
     val testIdAttributeOverride: String?
         get() = state.testIdAttribute?.trim()?.takeIf { it.isNotEmpty() }
 
+    /** Reuse browser is on and allowed (it requires Show browser, as in playwright-vscode where both are one setting). */
+    val isReuseBrowserEffective: Boolean
+        get() = state.showBrowser && state.reuseBrowser
+
     fun setShowBrowser(enabled: Boolean) {
+        if (state.showBrowser == enabled) return
         state.showBrowser = enabled
+        changed()
+    }
+
+    /**
+     * Reuse browser and "always record trace" exclude each other, like playwright-vscode's showBrowser/showTrace
+     * (src/settingsModel.ts): a reused context's tracing breaks when test-results is cleaned between runs.
+     */
+    fun setReuseBrowser(enabled: Boolean) {
+        if (state.reuseBrowser == enabled) return
+        state.reuseBrowser = enabled
+        if (enabled) state.alwaysRecordTrace = false
+        changed()
+    }
+
+    fun setAlwaysRecordTrace(enabled: Boolean) {
+        if (state.alwaysRecordTrace == enabled) return
+        state.alwaysRecordTrace = enabled
+        if (enabled) state.reuseBrowser = false
+        changed()
+    }
+
+    private fun changed() {
+        if (!project.isDisposed) project.messageBus.syncPublisher(PwTopics.SETTINGS_CHANGED).settingsChanged()
     }
 
     /** Reads the API key. Call off the EDT. */
@@ -54,6 +85,7 @@ class PwSettings : SimplePersistentStateComponent<PwSettings.State>(State()) {
     }
 
     companion object {
+        // Keep this service name: renaming it would orphan API keys already stored under it.
         private val API_KEY_ATTRIBUTES = CredentialAttributes(generateServiceName("Playwright for IntelliJ", "llm-api-key"))
 
         fun getInstance(project: Project): PwSettings = project.service()

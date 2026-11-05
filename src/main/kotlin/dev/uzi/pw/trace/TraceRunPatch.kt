@@ -7,10 +7,16 @@ import dev.uzi.pw.run.RunPatchContext
 import dev.uzi.pw.run.RunPatchContributor
 import dev.uzi.pw.settings.PwSettings
 
-/** "Always record trace": adds `--trace on` unless the run configuration already sets `--trace`. */
+/**
+ * "Always record trace": adds `--trace on` unless the run configuration already sets `--trace`.
+ * Inactive while "reuse browser" is in effect (the settings keep the two exclusive, as playwright-vscode does).
+ */
 object TraceRunPatch : RunPatchContributor {
 
-    override fun isActive(project: Project): Boolean = PwSettings.getInstance(project).state.alwaysRecordTrace
+    override fun isActive(project: Project): Boolean {
+        val settings = PwSettings.getInstance(project)
+        return settings.state.alwaysRecordTrace && !settings.isReuseBrowserEffective
+    }
 
     override suspend fun patch(context: RunPatchContext): RunPatch? {
         if (context.userHasOption("--trace")) return null

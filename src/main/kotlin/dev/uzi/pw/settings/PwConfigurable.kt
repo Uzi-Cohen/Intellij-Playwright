@@ -6,7 +6,9 @@ import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBPasswordField
+import com.intellij.ui.layout.selected
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
@@ -58,18 +60,32 @@ class PwConfigurable(private val project: Project) : BoundConfigurable(PwBundle.
                         )
                 }
             }
+            lateinit var showBrowserBox: JBCheckBox
+            lateinit var reuseBox: JBCheckBox
+            lateinit var traceBox: JBCheckBox
             group(PwBundle.message("settings.group.runs")) {
                 row {
-                    checkBox(PwBundle.message("toggle.showBrowser"))
+                    showBrowserBox = checkBox(PwBundle.message("toggle.showBrowser"))
                         .bindSelected({ state.showBrowser }, { settings.setShowBrowser(it) })
                         .comment(PwBundle.message("settings.showBrowser.comment"))
+                        .component
+                }
+                row {
+                    reuseBox = checkBox(PwBundle.message("toggle.reuseBrowser"))
+                        .bindSelected({ state.reuseBrowser }, { settings.setReuseBrowser(it) })
+                        .enabledIf(showBrowserBox.selected)
+                        .comment(PwBundle.message("settings.reuseBrowser.comment"))
+                        .onChanged { if (it.isSelected) traceBox.isSelected = false }
+                        .component
                 }
             }
             group(PwBundle.message("settings.group.trace")) {
                 row {
-                    checkBox(PwBundle.message("settings.trace.always"))
-                        .bindSelected({ state.alwaysRecordTrace }, { state.alwaysRecordTrace = it })
+                    traceBox = checkBox(PwBundle.message("settings.trace.always"))
+                        .bindSelected({ state.alwaysRecordTrace }, { settings.setAlwaysRecordTrace(it) })
                         .comment(PwBundle.message("settings.trace.always.comment"))
+                        .onChanged { if (it.isSelected) reuseBox.isSelected = false }
+                        .component
                 }
             }
             group(PwBundle.message("settings.group.agents")) {

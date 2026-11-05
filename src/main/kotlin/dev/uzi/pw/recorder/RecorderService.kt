@@ -50,6 +50,7 @@ import dev.uzi.pw.core.PwConfig
 import dev.uzi.pw.core.PwException
 import dev.uzi.pw.core.PwNotifications
 import dev.uzi.pw.core.PwProjectInfo
+import dev.uzi.pw.core.PwSettingsListener
 import dev.uzi.pw.core.PwTopics
 import dev.uzi.pw.core.RecorderMode
 import dev.uzi.pw.core.SetModeRequestedEvent
@@ -66,6 +67,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicInteger
 
 /** Owns the debug controller connection and the recorder state for a project. */
 @Service(Service.Level.PROJECT)
@@ -95,12 +97,27 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
     /** reusedBrowser.ts `_scheduleEdit`: document edits run one after another, in order. */
     private val edits = Channel<suspend () -> Unit>(Channel.UNLIMITED)
 
+    /** Playwright test runs currently using this browser (reusedBrowser.ts `_isRunningTests`). */
+    private val runningTests = AtomicInteger(0)
+
+    /** The browser was opened (or adopted) for "reuse browser" test runs. */
+    @Volatile
+    private var reusedForRuns = false
+
+    val isRunningTests: Boolean get() = runningTests.get() > 0
+
     init {
         cs.launch(Dispatchers.EDT) {
             for (edit in edits) {
                 runCatching { edit() }.onFailure { LOG.warn("Recorder edit failed", it) }
             }
         }
+        // reusedBrowser.ts: turning show-browser off closes the browser.
+        project.messageBus.connect(cs).subscribe(PwTopics.SETTINGS_CHANGED, PwSettingsListener {
+            if (!PwSettings.getInstance(project).isReuseBrowserEffective && reusedForRuns && !isRunningTests && state == State.IDLE) {
+                cs.launch { disposeClient() }
+            }
+        })
     }
 
     val isBrowserOpen: Boolean get() = client?.isClosed == false
@@ -179,8 +196,43 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
 
     /** Closes the browser and the run-server process. */
     fun closeBrowser() {
+        // reusedBrowser.ts `closeAllBrowsers`: not while tests run in this browser.
+        if (isRunningTests) {
+            PwNotifications.warn(project, PwBundle.message("recorder.warn.closeWhileRunning"))
+            return
+        }
         stop()
         cs.launch { disposeClient() }
+    }
+
+    // ---------------------------------------------------------------- reuse browser (reusedBrowser.ts onWillRunTests / onDidRunTests)
+
+    /**
+     * Before a "reuse browser" test run: start (or reuse) the debug controller browser, cancel any recording or
+     * picking so the run starts from a clean slate (reusedBrowser.ts `_startBackendIfNeeded`), and return the
+     * wsEndpoint for `PW_TEST_CONNECT_WS_ENDPOINT`.
+     */
+    suspend fun prepareForTestRun(config: PwConfig): String {
+        if (state == State.RECORDING || state == State.INSPECTING) {
+            withContext(Dispatchers.EDT) { stop() }
+        }
+        val c = ensureClient(config)
+        reusedForRuns = true
+        return c.wsEndpoint
+    }
+
+    fun onTestRunStarted() {
+        runningTests.incrementAndGet()
+        publish()
+    }
+
+    /** reusedBrowser.ts `onDidRunTests`: keep the browser while it has pages, close it otherwise. */
+    fun onTestRunFinished() {
+        val left = runningTests.updateAndGet { if (it > 0) it - 1 else 0 }
+        if (left == 0 && (pageCount == 0 || !PwSettings.getInstance(project).isReuseBrowserEffective)) {
+            cs.launch { disposeClient() }
+        }
+        publish()
     }
 
     /** Starts (or reuses) the client and switches the recorder to inspecting. Used by [LocatorPicker]. */
@@ -321,6 +373,11 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
         /** reusedBrowser.ts `_pageCountChanged`: no pages left means the browser was closed. */
         override fun onStateChanged(event: StateChangedEvent) {
             pageCount = event.pageCount
+            // reusedBrowser.ts `_pageCountChanged`: pages come and go while tests run; keep the browser.
+            if (event.pageCount == 0 && isRunningTests) {
+                publish()
+                return
+            }
             if (event.pageCount == 0) {
                 cs.launch(Dispatchers.EDT) { stopActiveRecording() }
                 setState(State.IDLE)
@@ -341,6 +398,7 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
         override fun onClosed(error: String?) {
             client = null
             pageCount = 0
+            reusedForRuns = false
             cs.launch(Dispatchers.EDT) { stopActiveRecording() }
             if (state != State.CODEGEN) setState(State.IDLE)
             if (error != null) PwNotifications.warn(project, PwBundle.message("recorder.warn.closed", error))
@@ -352,6 +410,7 @@ class RecorderService(private val project: Project, private val cs: CoroutineSco
     private suspend fun disposeClient() = clientMutex.withLock {
         client?.dispose()
         client = null
+        reusedForRuns = false
         clientConfigPath = null
         pageCount = 0
         publish()

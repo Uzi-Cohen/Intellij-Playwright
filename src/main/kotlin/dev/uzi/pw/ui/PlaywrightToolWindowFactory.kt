@@ -27,7 +27,7 @@ class PlaywrightToolWindowFactory : ToolWindowFactory, DumbAware {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        toolWindow.setTitleActions(listOf(ShowBrowserToggle(), ConfigPickerAction()))
+        toolWindow.setTitleActions(listOf(ShowBrowserToggle(), ReuseBrowserToggle(), ConfigPickerAction()))
         addTab(toolWindow, PwBundle.message("toolwindow.tab.record")) { d -> RecordTab(project, d).component }
         addTab(toolWindow, PwBundle.message("toolwindow.tab.traces")) { d -> TracesTab(project, d).component }
         addTab(toolWindow, PwBundle.message("toolwindow.tab.agents")) { d -> AgentsTab(project, d).component }

@@ -114,7 +114,7 @@ class RecordTab(private val project: Project, private val parentDisposable: Disp
                 recorder.state == RecorderService.State.RECORDING || recorder.state == RecorderService.State.INSPECTING ||
                     recorder.state == RecorderService.State.CODEGEN
             }) { recorder.stop() })
-            add(TabAction(PwBundle.message("record.action.closeBrowser"), AllIcons.Actions.Close, { recorder.isBrowserOpen }) {
+            add(TabAction(PwBundle.message("record.action.closeBrowser"), AllIcons.Actions.Close, { recorder.isBrowserOpen && !recorder.isRunningTests }) {
                 recorder.closeBrowser()
             })
         }
@@ -149,7 +149,7 @@ class RecordTab(private val project: Project, private val parentDisposable: Disp
     private fun canStart(): Boolean {
         val config = PlaywrightProjectLocator.getInstance(project).selectedConfig()
         val state = recorder.state
-        return config?.isSupported == true && state != RecorderService.State.RECORDING &&
+        return config?.isSupported == true && !recorder.isRunningTests && state != RecorderService.State.RECORDING &&
             state != RecorderService.State.STARTING && state != RecorderService.State.CODEGEN
     }
 
@@ -163,7 +163,11 @@ class RecordTab(private val project: Project, private val parentDisposable: Disp
             config == null -> PwBundle.message("record.status.noConfig")
             !config.isSupported -> PwBundle.message("record.status.unsupported", config.version?.raw ?: "?")
             else -> when (recorder.state) {
-                RecorderService.State.IDLE -> if (recorder.isBrowserOpen) PwBundle.message("record.status.browserOpen", recorder.pageCount) else PwBundle.message("record.status.idle")
+                RecorderService.State.IDLE -> when {
+                    recorder.isRunningTests -> PwBundle.message("record.status.runningTests")
+                    recorder.isBrowserOpen -> PwBundle.message("record.status.browserOpen", recorder.pageCount)
+                    else -> PwBundle.message("record.status.idle")
+                }
                 RecorderService.State.STARTING -> PwBundle.message("record.status.starting")
                 RecorderService.State.RECORDING -> PwBundle.message("record.status.recording")
                 RecorderService.State.INSPECTING -> PwBundle.message("record.status.inspecting")
