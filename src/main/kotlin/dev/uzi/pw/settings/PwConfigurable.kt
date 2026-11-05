@@ -47,8 +47,15 @@ class PwConfigurable(private val project: Project) : BoundConfigurable(PwBundle.
                         .bindText({ state.defaultRecordUrl ?: "" }, { state.defaultRecordUrl = it.trim().ifBlank { null } })
                 }
                 row(PwBundle.message("settings.testIdAttribute")) {
+                    val locator = PlaywrightProjectLocator.getInstance(project)
+                    val detected = locator.selectedConfig()?.let { locator.cachedConfigTestIdAttribute(it) }
                     textField()
-                        .bindText({ state.testIdAttribute ?: "data-testid" }, { state.testIdAttribute = it.trim().ifBlank { "data-testid" } })
+                        .bindText({ state.testIdAttribute ?: "" }, { state.testIdAttribute = it.trim().ifBlank { null } })
+                        .applyToComponent { emptyText.text = detected ?: PlaywrightProjectLocator.DEFAULT_TEST_ID_ATTRIBUTE }
+                        .comment(
+                            if (detected != null) PwBundle.message("settings.testIdAttribute.detected", detected)
+                            else PwBundle.message("settings.testIdAttribute.notDetected", PlaywrightProjectLocator.DEFAULT_TEST_ID_ATTRIBUTE),
+                        )
                 }
             }
             group(PwBundle.message("settings.group.trace")) {
