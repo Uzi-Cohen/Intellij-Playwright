@@ -37,7 +37,8 @@ src/main/kotlin/dev/uzi/pw/
   trace/     TraceService TraceWatcher TraceViewerPanel TraceIndex TraceRunPatch
   run/       PlaywrightRunPatcher RunPatch HeadedRunPatch ReuseBrowserRunPatch
   agents/    AgentService AgentBackend ClaudeCliBackend CodexCliBackend OpencodeCliBackend InitAgentsAction Plan/Generate/Heal actions
-  ui/        PlaywrightToolWindowFactory RecordTab TracesTab AgentsTab
+  reports/   ReportingSetup ReporterConfigEditor ReporterKind PackageManager ReportsService StaticReportServer ReportsRunPatch
+  ui/        PlaywrightToolWindowFactory RecordTab TracesTab ReportsTab AgentsTab WebViewPanel
   settings/  PwSettings PwConfigurable
 ```
 

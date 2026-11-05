@@ -30,6 +30,10 @@ class PwSettings(private val project: Project) : SimplePersistentStateComponent<
         var showBrowser by property(false)
         /** Run tests in the plugin's browser and keep it open between runs. Effective only with [showBrowser]. */
         var reuseBrowser by property(false)
+        /** Show the Reports tab with the latest report when a Playwright run ends. */
+        var openReportAfterRun by property(false)
+        /** Clear the allure-playwright results folder before each Playwright run started from the IDE. */
+        var cleanAllureResults by property(true)
         /** One of [AgentBackendId] names. */
         var agentBackend by string(AgentBackendId.CLAUDE.name)
         var agentCliPath by string()
