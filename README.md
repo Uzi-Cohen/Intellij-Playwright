@@ -36,8 +36,35 @@ Build the plugin zip:
 .\gradlew.bat buildPlugin
 ```
 
+Check the zip with Plugin Verifier (IntelliJ IDEA 2026.1.5, 2026.2.4, and WebStorm 2026.2.4):
+
+```powershell
+.\gradlew.bat verifyPlugin
+```
+
 The zip is written to `build\distributions\`. Install it with
 Settings | Plugins | gear icon | Install Plugin from Disk.
+
+## Publishing
+
+The first upload to JetBrains Marketplace is manual. After that, the Release workflow
+signs and publishes when a GitHub release is published or a version tag is pushed.
+
+Before the first upload, generate a signing key (see Plugin Signing in the IntelliJ Platform
+Plugin SDK) and run `.\gradlew.bat signPlugin`. Upload the `*-signed.zip`. Create a
+permanent token at https://plugins.jetbrains.com/author/me/tokens and add these repository
+secrets under Settings | Secrets and variables | Actions:
+
+| Secret | Value |
+| --- | --- |
+| `PUBLISH_TOKEN` | Marketplace permanent token |
+| `CERTIFICATE_CHAIN` | Contents of `chain.crt` (PEM or its Base64) |
+| `PRIVATE_KEY` | Contents of `private.pem` (PEM or its Base64) |
+| `PRIVATE_KEY_PASSWORD` | Password for the private key |
+
+`.\gradlew.bat publishPlugin` signs and uploads. It works only after the plugin exists on
+Marketplace. Set Actions workflow permissions to read and write so the workflow can open
+the changelog pull request.
 
 ## License
 

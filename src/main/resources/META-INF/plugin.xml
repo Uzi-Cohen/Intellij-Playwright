@@ -3,6 +3,11 @@
     <name>Playwright Toolkit</name>
     <vendor url="https://github.com/uzi-cohen">Uzi Cohen</vendor>
 
+    <!-- since-build 261 is 2026.1. until-build is omitted on purpose; build.gradle.kts sets it to null
+         so 2026.2 and later stay compatible. Description and change notes are patched at build time
+         from README.md and CHANGELOG.md. -->
+    <idea-version since-build="261"/>
+
     <depends>com.intellij.modules.platform</depends>
     <depends>JavaScript</depends>
 
