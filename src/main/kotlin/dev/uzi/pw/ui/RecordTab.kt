@@ -12,13 +12,17 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileTypes.FileType
+import com.intellij.openapi.fileTypes.FileTypeManager
+import com.intellij.openapi.fileTypes.PlainTextFileType
+import com.intellij.openapi.fileTypes.UnknownFileType
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.util.Disposer
 import com.intellij.ui.EditorTextField
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
 import dev.uzi.pw.PwBundle
@@ -30,49 +34,67 @@ import dev.uzi.pw.locator.LocatorPicker
 import dev.uzi.pw.recorder.RecordAtCursorAction
 import dev.uzi.pw.recorder.RecordNewAction
 import dev.uzi.pw.recorder.RecorderService
+import java.awt.Dimension
+import java.awt.FlowLayout
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
-import java.awt.FlowLayout
 
-/** Record tab: record new / at cursor, pick locator, the editable locator field, and browser controls. */
+/**
+ * Record tab: record new / at cursor, pick locator, the editable locator and aria snapshot fields
+ * (each highlighted live in the browser, as in playwright-vscode's locators view), and browser controls.
+ */
 class RecordTab(private val project: Project, private val parentDisposable: Disposable) {
 
     private val recorder = RecorderService.getInstance(project)
     private val picker = LocatorPicker.getInstance(project)
     private val status = JBLabel()
     private val locatorField = EditorTextField("", project, TypeScriptFileType)
-    private val ariaArea = JBTextArea(6, 40).apply { isEditable = false; lineWrap = false }
-    private var updatingField = false
+    private val ariaField = EditorTextField("", project, yamlFileType()).apply {
+        setOneLineMode(false)
+        preferredSize = Dimension(JBUI.scale(300), JBUI.scale(160))
+        addSettingsProvider { editor ->
+            editor.settings.isLineNumbersShown = false
+            editor.settings.isUseSoftWraps = false
+            editor.setVerticalScrollbarVisible(true)
+            editor.setHorizontalScrollbarVisible(true)
+        }
+    }
+    private val ariaError = JBLabel().apply { foreground = JBColor.RED; isVisible = false }
+    private var updatingFields = false
 
     val component: JComponent
 
     init {
         locatorField.setOneLineMode(true)
-        val fieldListener = object : DocumentListener {
-            override fun documentChanged(event: DocumentEvent) {
-                if (!updatingField) picker.highlightDebounced(locatorField.text)
-            }
-        }
-        locatorField.addDocumentListener(fieldListener)
-        com.intellij.openapi.util.Disposer.register(parentDisposable) { locatorField.removeDocumentListener(fieldListener) }
+        listen(locatorField) { picker.highlightDebounced(it) }
+        listen(ariaField) { picker.highlightAriaDebounced(it) }
 
-        val copy = JButton(PwBundle.message("record.button.copy"), AllIcons.Actions.Copy).apply {
-            addActionListener { picker.copy(locatorField.text) }
-        }
-        val insert = JButton(PwBundle.message("record.button.insert"), AllIcons.General.Add).apply {
-            addActionListener { picker.insertAtCaret(locatorField.text) }
-        }
-        val locatorButtons = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
-            add(copy)
-            add(insert)
-        }
+        val locatorButtons = buttons(
+            JButton(PwBundle.message("record.button.copy"), AllIcons.Actions.Copy).apply {
+                addActionListener { picker.copy(locatorField.text) }
+            },
+            JButton(PwBundle.message("record.button.insert"), AllIcons.General.Add).apply {
+                addActionListener { picker.insertAtCaret(locatorField.text) }
+            },
+        )
+        val ariaButtons = buttons(
+            JButton(PwBundle.message("record.button.copy"), AllIcons.Actions.Copy).apply {
+                addActionListener { picker.copy(ariaField.text) }
+            },
+            JButton(PwBundle.message("record.button.insertAria"), AllIcons.General.Add).apply {
+                toolTipText = PwBundle.message("record.button.insertAria.tooltip")
+                addActionListener { picker.insertAriaAssertion(locatorField.text, ariaField.text) }
+            },
+        )
 
         val body = FormBuilder.createFormBuilder()
             .addComponent(status)
             .addLabeledComponent(PwBundle.message("record.label.locator"), locatorField, true)
             .addComponent(locatorButtons)
-            .addLabeledComponent(PwBundle.message("record.label.aria"), JBScrollPane(ariaArea), true)
+            .addLabeledComponent(PwBundle.message("record.label.aria"), ariaField, true)
+            .addComponent(ariaError)
+            .addComponent(ariaButtons)
             .addComponentFillVertically(JPanel(), 0)
             .panel
         body.border = JBUI.Borders.empty(8)
@@ -110,6 +132,20 @@ class RecordTab(private val project: Project, private val parentDisposable: Disp
         refresh()
     }
 
+    private fun listen(field: EditorTextField, onEdit: (String) -> Unit) {
+        val listener = object : DocumentListener {
+            override fun documentChanged(event: DocumentEvent) {
+                if (!updatingFields) onEdit(field.text)
+            }
+        }
+        field.addDocumentListener(listener)
+        Disposer.register(parentDisposable) { field.removeDocumentListener(listener) }
+    }
+
+    private fun buttons(vararg buttons: JButton) = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
+        buttons.forEach { add(it) }
+    }
+
     private fun canStart(): Boolean {
         val config = PlaywrightProjectLocator.getInstance(project).selectedConfig()
         val state = recorder.state
@@ -134,15 +170,16 @@ class RecordTab(private val project: Project, private val parentDisposable: Disp
                 RecorderService.State.CODEGEN -> PwBundle.message("record.status.codegen")
             }
         }
-        if (locatorField.text != picker.locator) {
-            updatingField = true
-            try {
-                locatorField.text = picker.locator
-            } finally {
-                updatingField = false
-            }
+        updatingFields = true
+        try {
+            if (locatorField.text != picker.locator) locatorField.text = picker.locator
+            if (ariaField.text != picker.ariaSnapshot) ariaField.text = picker.ariaSnapshot
+        } finally {
+            updatingFields = false
         }
-        ariaArea.text = picker.ariaSnapshot
+        val error = picker.ariaError
+        ariaError.text = error ?: ""
+        ariaError.isVisible = !error.isNullOrBlank()
     }
 
     private class TabAction(
@@ -156,5 +193,13 @@ class RecordTab(private val project: Project, private val parentDisposable: Disp
             e.presentation.isEnabled = enabled()
         }
         override fun actionPerformed(e: AnActionEvent) = perform()
+    }
+
+    companion object {
+        /** The YAML file type when the bundled YAML plugin is enabled, plain text otherwise. */
+        private fun yamlFileType(): FileType {
+            val type = FileTypeManager.getInstance().getFileTypeByExtension("yaml")
+            return if (type is UnknownFileType || type == PlainTextFileType.INSTANCE) PlainTextFileType.INSTANCE else type
+        }
     }
 }
